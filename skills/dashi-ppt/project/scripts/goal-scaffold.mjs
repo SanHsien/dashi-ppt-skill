@@ -1348,11 +1348,15 @@ function suggestTemplateProjection(layout, content, options = {}) {
   const primary = projectionPlan.primaryContentContainer;
   if (primary?.kind === 'array') {
     const targetCount = primaryArrayTargetCount(primary, presentation, deferred);
+    const canonicalItemCount = deriveTemplateItems(presentation).length;
     const source = canonicalSourceForArray(primary.field, presentation, {
       targetCount,
       deferred,
       includeTextFallback: true,
-      supplementTextFallback: true,
+      // Keep truthful condensation scoped to authored facts. Narrative
+      // fallbacks may fill a real shortage, but must not become extra items
+      // when the canonical item set already covers the target slots.
+      supplementTextFallback: targetCount > canonicalItemCount,
     });
     if (!source) {
       issues.push(`${primary.key}: canonical items cannot fill the primary array`);
@@ -1633,11 +1637,20 @@ function normalizeTargetKey(key) {
 function primaryArrayTargetCount(primary, presentation, deferred) {
   const field = primary.field || {};
   const capacity = arrayFieldCapacity(field) || primary.capacity || 0;
-  const available = deriveTemplateItems(presentation).length;
+  const canonicalAvailable = deriveTemplateItems(presentation).length;
+  const minimum = Math.max(0, Number(primary.minimumCapacity || 0));
+  const canSupplementWithCanonicalText = !primary.fields?.some(source => (
+    source === 'value' || source === 'displayValue' || source === 'unit'
+  ));
+  const available = canSupplementWithCanonicalText && minimum > canonicalAvailable
+    ? deriveTemplateItems(presentation, {
+        includeTextFallback: true,
+        supplementTextFallback: true,
+      }).length
+    : canonicalAvailable;
   if (field.countKey) {
-    const minimum = Math.max(0, Number(primary.minimumCapacity || 0));
     if (deferred) return Math.max(1, minimum);
-    return Math.min(capacity || available, available);
+    return Math.min(capacity || available, Math.max(canonicalAvailable, minimum));
   }
   const visible = Math.max(0, Number(field.visibleCount || field.fixedLength || 0));
   if (visible) return visible;
@@ -1791,13 +1804,14 @@ function projectionSourcesForSemantic(semantic) {
   const sources = {
     label: ['label', 'projectionLabel', 'labelWithValue', 'projectionTag', 'id', 'projectionOrdinal'],
     indexedLabel: ['projectionLabel', 'labelWithValue', 'projectionTag', 'label', 'id', 'projectionOrdinal'],
-    secondaryLabel: ['detail'],
+    secondaryLabel: ['projectionSecondaryLabel'],
+    duration: ['projectionDuration'],
     pageLabel: ['projectionPageLabel'],
     initial: ['projectionInitial'],
     detail: ['labelWithSupporting', 'projectionDetail', 'detail', 'labelWithValueAndSupporting', 'projectionLabel', 'label'],
-    displayValue: ['displayValue', 'projectionValue', 'labelWithValue', 'projectionTag', 'projectionOrdinal', 'label'],
-    ordinal: ['projectionOrdinal', 'projectionValue', 'id', 'projectionLabel', 'label'],
-    unit: ['unit', 'projectionUnit', 'projectionOrdinal', 'displayValue', 'projectionLabel'],
+    displayValue: ['displayValue', 'projectionValue'],
+    ordinal: ['projectionOrdinal'],
+    unit: ['unit', 'projectionUnit'],
     id: ['id', 'projectionOrdinal', 'projectionLabel', 'label'],
   };
   return sources[semantic] || sources.label;
@@ -1941,11 +1955,11 @@ function scalarItemProjection(item, slot, { deferred = false } = {}) {
           )
         : ['label', 'labelWithValue', 'displayValue']
       : semantic === 'displayValue'
-        ? ['displayValue', 'labelWithValue', 'label']
+        ? ['displayValue']
         : semantic === 'detail'
           ? ['detail', 'labelWithSupporting', 'labelWithValueAndSupporting', 'label']
           : semantic === 'unit'
-            ? ['unit', 'displayValue', 'label']
+            ? ['unit']
             : ['label'];
     const maxChars = Number(slot?.budgets?.[semantic] || 0);
     const source = chooseProjectionItemSource(
@@ -2363,34 +2377,94 @@ function mirrorProjectionCountAliases(inspected, props) {
 function presentationFieldForTarget(key, type, field = {}) {
   const name = String(key || '').toLowerCase();
   const container = String(field.key || '').toLowerCase().split('.').at(-1)?.replace(/\[\]$/g, '') || '';
-  const siblingKeys = new Set(Object.keys(field.itemShape || {}).map(item => item.toLowerCase()));
-  if (type === 'number') return 'chartValue';
+  const containerRole = String(field.role || '').toLowerCase();
+  const itemEntries = Object.entries(field.itemShape || {});
+  const siblingKeys = new Set(itemEntries.map(([item]) => item.toLowerCase()));
+  const siblingTypes = new Map(itemEntries.map(([item, itemType]) => [item.toLowerCase(), itemType]));
+  const itemFieldEntries = Object.entries(field.itemFields || {});
+  const itemField = itemFieldEntries
+    .find(([itemKey]) => String(itemKey).toLowerCase() === name)?.[1] || {};
+  const siblingRoles = new Map(itemFieldEntries.map(([itemKey, contract]) => [
+    String(itemKey).toLowerCase(),
+    String(contract?.role || '').toLowerCase(),
+  ]));
+  const contractRole = String(itemField.role || '').toLowerCase();
+  const numericSource = 'chartValue';
+  const metricContainer = containerRole === 'metric'
+    || /^(?:stats|metrics|kpis|metricsdata|indicators|scores|factsdata)$/.test(container);
+  const chapterContainer = containerRole === 'chapter'
+    || /^(?:contents|index|chapters|agenda)$/.test(container);
+  const durationContainer = /^(?:tracks|songs|playlist|setlist)$/.test(container);
+  const hasTitleSibling = ['t', 'title', 'label', 'name', 'big', 'cn', 'zh', 'nm', 'lb']
+    .some(item => siblingKeys.has(item));
+  const hasMetricSibling = itemEntries.some(([itemKey, itemType]) => (
+    itemKey.toLowerCase() !== name
+    && (itemType === 'number'
+      || siblingRoles.get(itemKey.toLowerCase()) === 'metric'
+      || /^(?:v|value|amount|amt|metric|stat|pct|percent|score|avg|disp|val)$/.test(itemKey.toLowerCase()))
+  ));
+
   if (type === 'boolean' && /focus|active|highlight|selected|up|positive/.test(name)) return 'focus';
+  if (name === 'idx') return 'ordinal';
+
+  // Short fields are interpreted only inside their real container contract.
+  // Page, duration, metric and secondary-label slots require corresponding
+  // canonical data; they never fall back to an ordinal or ordinary label.
+  if (name === 'pg' || name === 'page' || name === 'pageno' || name === 'pagenumber') {
+    return 'pageLabel';
+  }
+  if (/^(?:unit|suffix)$/.test(name)
+    || (name === 'u' && (metricContainer || hasMetricSibling))) return 'unit';
   if (container === 'quotes') {
     if (name === 'q') return 'detail';
     if (name === 'n') return 'label';
     if (name === 'r') return 'secondaryLabel';
     if (name === 'm') return 'initial';
   }
-  if (name === 'pg' || name === 'page') return 'pageLabel';
-  if (name === 'e') return 'secondaryLabel';
+  if (name === 'd') {
+    if (type === 'number') return numericSource;
+    if (durationContainer) return 'duration';
+    if (contractRole === 'metric' || metricContainer) return 'displayValue';
+    if (contractRole === 'body' || contractRole === 'paragraph' || hasTitleSibling) return 'detail';
+    return null;
+  }
+  if (name === 'e') {
+    if (type === 'number') return numericSource;
+    if (contractRole === 'body' || contractRole === 'paragraph') return 'detail';
+    if (chapterContainer || siblingKeys.has('t') || siblingKeys.has('n') || siblingKeys.has('pg')) {
+      return 'secondaryLabel';
+    }
+    return null;
+  }
   if (name === 'n') {
-    if (field.role === 'metric' || /^(stats|metrics|kpis)$/.test(container)) return 'displayValue';
-    if (/^(quotes|artists)$/.test(container)) return 'label';
-    if (siblingKeys.has('t') || siblingKeys.has('big') || siblingKeys.has('sub')) return 'ordinal';
+    if (type === 'number') return numericSource;
+    if (contractRole === 'metric' || metricContainer) return 'displayValue';
+    if (/^(?:quotes|artists)$/.test(container)) return 'label';
+    if (hasTitleSibling) return 'ordinal';
     return 'label';
   }
-  if (/^(s|d)$/.test(name)) return 'detail';
-  if (/^(no|num)$/.test(name)) return 'ordinal';
+  if (name === 't') {
+    return contractRole === 'body' || contractRole === 'paragraph' ? 'detail' : 'label';
+  }
+  if (name === 's') {
+    if (type === 'number') return numericSource;
+    if (contractRole === 'metric' || metricContainer) return 'displayValue';
+    if (container === 'artists' && siblingTypes.has('v')) return 'displayValue';
+    return hasTitleSibling ? 'secondaryLabel' : null;
+  }
+  if ((name === 'l' || name === 'lb') && (metricContainer || hasMetricSibling)) return 'label';
+
+  if (type === 'number') return numericSource;
+  if (contractRole === 'metric') return 'displayValue';
+  if (contractRole === 'body' || contractRole === 'paragraph') return 'detail';
+  if (/^(?:no|num)$/.test(name)) return 'ordinal';
   if (/body|detail|description|desc|note|summary|sub|caption|copy|text/.test(name)) return 'detail';
-  if (/^(v)$|value|amount|score|number|metric|stat|pct|percent|share|tag|fig|delta|rate/.test(name)) return 'displayValue';
-  if (/phase|stage|period|time|rank|index/.test(name)) return 'displayValue';
-  if (/^(k|t)$|label|name|title|heading|category|series|item|dim|^en$/.test(name)) return 'label';
-  if (/unit|suffix/.test(name)) return 'unit';
+  if (/^(?:v)$|value|amount|score|number|metric|stat|pct|percent|share|delta|rate/.test(name)) return 'displayValue';
+  if (/rank|index/.test(name)) return 'ordinal';
+  if (/^(?:k|t)$|label|name|title|heading|category|series|item|dim|^en$|phase|stage|period|time|tag/.test(name)) return 'label';
   if (/^id$|key/.test(name)) return 'id';
   return null;
 }
-
 function arrayFieldNestedDepth(field) {
   if (Object.keys(field?.nestedArrays || {}).length) return 1;
   return contentArrayDepth(field?.itemShape);

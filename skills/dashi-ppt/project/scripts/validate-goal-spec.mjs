@@ -521,7 +521,13 @@ function isVariantNamedNamespace(key, variantIds) {
 function validateTemplateCanonicalContent(variant, content, slideNumber, errors, scopeSuffix = '') {
   const variantId = String(variant?.id || '<missing>');
   const inspected = inspectLayout(variant?.layout, { compact: true }) || {};
-  const requiredTargets = templateRequiredTargets(inspected, content);
+  const businessTargets = templateBusinessTargets(inspected);
+  const requiredTargets = templateRequiredTargets(
+    inspected,
+    content,
+    businessTargets,
+    variant?.props,
+  );
   const titleTargets = templateTitleTargets(inspected, content);
   const contentMap = isPlainRecord(variant?.contentMap) ? variant.contentMap : {};
   validateContentMapTargetCoverage(
@@ -530,9 +536,12 @@ function validateTemplateCanonicalContent(variant, content, slideNumber, errors,
     `slide ${slideNumber}${scopeSuffix} variant ${variantId}`,
     errors,
   );
+  // Hidden or currently disabled business fields still cannot carry candidate-
+  // local copy in props: a user may re-enable the real control later.  A safely
+  // disabled target may omit its mapping, but it must not retain stale payload.
   validateNoIndependentVisibleValues(
     variant?.props,
-    requiredTargets,
+    businessTargets,
     'props',
     `slide ${slideNumber}${scopeSuffix} variant ${variantId}`,
     errors,
@@ -544,16 +553,65 @@ function validateTemplateCanonicalContent(variant, content, slideNumber, errors,
   };
 }
 
-function templateRequiredTargets(inspected, content) {
-  const semanticTextRoles = new Set(['title', 'body', 'paragraph', 'metric']);
+function templateBusinessTargets(inspected) {
+  const contracts = inspected?.fieldContracts || [];
+  const explicitDecorativePaths = (inspected?.decorativeKeys || [])
+    .map(normalizeTemplateTargetPath)
+    .filter(Boolean);
+  const mediaPaths = (inspected?.mediaSlots || [])
+    .flatMap(slot => [
+      slot?.field,
+      slot?.fieldPath,
+      slot?.writableProp,
+      slot?.presetProp,
+    ])
+    .map(normalizeTemplateTargetPath)
+    .filter(Boolean);
+  const controlPaths = new Set(
+    (inspected?.controls || [])
+      .flatMap(control => [control?.key, control?.publicKey])
+      .map(normalizeTemplateTargetPath)
+      .filter(Boolean),
+  );
+  const explicitlyNonBusinessPaths = contracts
+    .filter(contract => (
+      contract?.businessContent === false
+      || ['decorative', 'media', 'control'].includes(String(contract?.role || '').toLowerCase())
+    ))
+    .map(contract => normalizeTemplateTargetPath(contract?.key))
+    .filter(Boolean);
+
+  const contractFor = key => contracts.find(contract => (
+    normalizeContractPath(contract?.key) === normalizeContractPath(key)
+    || reduceArrayTarget(normalizeTemplateTargetPath(contract?.key))
+      === reduceArrayTarget(normalizeTemplateTargetPath(key))
+  ));
+  const targets = new Set();
+  const add = (key, role) => {
+    const pathName = normalizeTemplateTargetPath(key);
+    const target = reduceArrayTarget(pathName);
+    if (!target) return;
+    const contract = contractFor(pathName);
+    const roles = [role, contract?.role].map(value => String(value || '').toLowerCase());
+    if (roles.some(value => ['decorative', 'media', 'control'].includes(value))) return;
+    if (contract?.businessContent === false) return;
+    if (controlPaths.has(target)) return;
+    if (explicitDecorativePaths.some(pathValue => templatePathOverlaps(pathValue, target))) return;
+    if (mediaPaths.some(pathValue => templatePathOverlaps(pathValue, target))) return;
+    if (explicitlyNonBusinessPaths.some(pathValue => templatePathOverlaps(pathValue, target))) return;
+    targets.add(target);
+  };
+
+  for (const field of inspected?.fillPlan?.text || []) add(field?.key, field?.role);
+  for (const field of inspected?.fillPlan?.arrays || []) add(field?.key, field?.role);
+  for (const contract of contracts) add(contract?.key, contract?.role);
+  return [...targets];
+}
+
+function templateRequiredTargets(inspected, content, businessTargets, props = {}) {
   const contentShape = contentShapeFromPresentation(content?.presentation);
   const projectionPlan = buildTemplateProjectionPlan(inspected, contentShape);
   const primary = projectionPlan.primaryContentContainer;
-  const auxiliaryScalarTargets = new Set(
-    (projectionPlan.auxiliaryContentContainers || [])
-      .filter(container => container?.kind === 'scalar-group')
-      .flatMap(container => container.targetPaths || []),
-  );
   const itemCount = contentShape.required.itemCount;
   const primaryTargets = primary?.kind === 'scalar-group'
     ? primary.slots
@@ -563,14 +621,111 @@ function templateRequiredTargets(inspected, content) {
       ? [primary.key]
       : [];
   return [...new Set([
-    ...(inspected?.fillPlan?.text || [])
-      .filter(field => (
-        semanticTextRoles.has(String(field?.role || '').toLowerCase())
-        && !auxiliaryScalarTargets.has(field?.key)
-      ))
-      .map(field => reduceArrayTarget(field?.key)),
+    ...businessTargets,
     ...primaryTargets.map(reduceArrayTarget),
-  ].filter(Boolean))];
+  ].filter(Boolean))]
+    .filter(target => !templateTargetSafelyDisabled(target, inspected, props));
+}
+
+function templateTargetSafelyDisabled(target, inspected, props = {}) {
+  const arrayField = (inspected?.fillPlan?.arrays || []).find(field => (
+    reduceArrayTarget(normalizeTemplateTargetPath(field?.key)) === target
+  ));
+  if (arrayField && templateArrayCountIsSafelyZero(arrayField, inspected, props)) return true;
+
+  const toggle = templateToggleForTarget(target, inspected);
+  if (!toggle) return false;
+  const enabled = props?.[toggle.key]
+    ?? props?.[toggle.publicKey]
+    ?? toggle.default;
+  if (enabled !== false) return false;
+
+  // A hidden array whose real component contract requires items still needs a
+  // canonical projection.  Keeping that data is what makes re-enabling the
+  // control safe and avoids violating min/fixed-length contracts.
+  return !arrayField || templateArrayMinimum(arrayField, inspected) === 0;
+}
+
+function templateArrayCountIsSafelyZero(field, inspected, props) {
+  const binding = templateCountBindingForArray(field, inspected);
+  if (!binding && !field?.countKey) return false;
+  const control = (inspected?.controls || []).find(item => (
+    item?.key === binding?.key
+    || item?.publicKey === binding?.publicKey
+    || item?.key === field?.countKey
+    || item?.publicKey === field?.countKey
+  ));
+  const count = props?.[binding?.key]
+    ?? props?.[binding?.publicKey]
+    ?? props?.[field?.countKey]
+    ?? control?.default
+    ?? inspected?.defaultVisibleCounts?.[binding?.publicKey]
+    ?? inspected?.defaultVisibleCounts?.[binding?.key]
+    ?? inspected?.defaultVisibleCounts?.[field?.countKey]
+    ?? field?.visibleCount;
+  return Number(count) === 0 && templateArrayMinimum(field, inspected) === 0;
+}
+
+function templateArrayMinimum(field, inspected) {
+  const binding = templateCountBindingForArray(field, inspected);
+  const control = (inspected?.controls || []).find(item => (
+    item?.key === binding?.key
+    || item?.publicKey === binding?.publicKey
+    || item?.key === field?.countKey
+    || item?.publicKey === field?.countKey
+  ));
+  for (const value of [binding?.min, control?.min, field?.minCount, field?.fixedLength]) {
+    const number = Number(value);
+    if (Number.isFinite(number)) return Math.max(0, number);
+  }
+  if (!binding && !field?.countKey) {
+    const visible = Number(field?.visibleCount);
+    if (Number.isFinite(visible)) return Math.max(0, visible);
+  }
+  return 0;
+}
+
+function templateCountBindingForArray(field, inspected) {
+  const fieldKey = normalizeTemplateTargetPath(field?.key);
+  return (inspected?.countBindings || []).find(binding => (
+    (binding?.arrays || []).some(arrayPath => (
+      normalizeTemplateTargetPath(arrayPath) === fieldKey
+    ))
+    || binding?.key === field?.countKey
+    || binding?.publicKey === field?.countKey
+  ));
+}
+
+function templateToggleForTarget(target, inspected) {
+  const parts = normalizeTemplateTargetPath(target).split('.').filter(Boolean);
+  const root = normalizeToggleToken(parts[0]);
+  const leaf = normalizeToggleToken(parts.at(-1));
+  const full = normalizeToggleToken(parts.join(''));
+  const targetTokens = new Set([root, leaf, full].filter(Boolean));
+  return (inspected?.controls || []).find(control => {
+    if (control?.type !== 'toggle') return false;
+    const keys = [control?.key, control?.publicKey]
+      .map(normalizeToggleToken)
+      .filter(Boolean);
+    return keys.some(key => key.startsWith('show') && targetTokens.has(key.slice(4)));
+  });
+}
+
+function normalizeToggleToken(value) {
+  return String(value || '').replace(/[^a-z0-9]/gi, '').toLowerCase();
+}
+
+function normalizeTemplateTargetPath(value) {
+  return String(value || '')
+    .replace(/^props\./, '')
+    .replace(/\[\d+\]/g, '[]')
+    .replace(/\.$/, '');
+}
+
+function templatePathOverlaps(left, right) {
+  const a = reduceArrayTarget(normalizeTemplateTargetPath(left));
+  const b = reduceArrayTarget(normalizeTemplateTargetPath(right));
+  return a === b || a.startsWith(`${b}.`) || b.startsWith(`${a}.`);
 }
 
 function hasContentValue(value) {

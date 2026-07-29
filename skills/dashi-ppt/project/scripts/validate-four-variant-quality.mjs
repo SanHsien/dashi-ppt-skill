@@ -3,10 +3,10 @@ import {
   existsSync,
   mkdirSync,
   readFileSync,
+  statSync,
   writeFileSync,
 } from 'node:fs';
 import path from 'node:path';
-import { pathToFileURL } from 'node:url';
 import { chromium } from 'playwright-core';
 
 import { getExportBrowserPath } from './chrome-path.mjs';
@@ -61,11 +61,13 @@ if (explicitGoalPath) {
 }
 
 let browser;
+let dependencyAudit = null;
+let descriptorScope = null;
 let report;
 try {
   const html = readFileSync(deckFile, 'utf8');
   const runtimeFile = path.join(deckDir, 'assets/imported-theme-runtime.js');
-  const dependencyAudit = auditThemeAssetProvenance({
+  dependencyAudit = auditThemeAssetProvenance({
     html: existsSync(runtimeFile) ? `${html}\n${readFileSync(runtimeFile, 'utf8')}` : html,
     deckDir,
     projectRoot,
@@ -79,7 +81,8 @@ try {
   const page = await browser.newPage({ viewport: { width: 1920, height: 1080 } });
   const pageErrors = [];
   page.on('pageerror', error => pageErrors.push(error.message));
-  await page.goto(pathToFileURL(deckFile).href, { waitUntil: 'load' });
+  await installDeckAssetRoute(page, deckDir);
+  await page.setContent(withDeckBase(html), { waitUntil: 'load' });
   await page.waitForFunction(() => (
     document.querySelector('#deck')
     && typeof window.__getExportSlides === 'function'
@@ -98,6 +101,17 @@ try {
   const descriptors = normalizeExportDescriptors(runtime.descriptors);
   const qualityDescriptors = descriptors.filter(descriptor => descriptor.variantKind === 'bespoke');
   const groups = groupPhysicalSlides(descriptors);
+  descriptorScope = {
+    logicalGroupsChecked: groups.length,
+    liveLogicalPagesChecked: runtime.liveLogicalPages,
+    comparisonCandidates: descriptors.length,
+    physicalPagesChecked: qualityDescriptors.length,
+    templatePagesChecked: 0,
+    templatePagesSkipped: descriptors.filter(
+      descriptor => descriptor.variantKind === 'template',
+    ).length,
+    bespokePagesChecked: qualityDescriptors.length,
+  };
   const groupErrors = validateGroups(groups, runtime.liveLogicalPages);
   const issues = [];
   const groupReports = [];
@@ -150,28 +164,29 @@ try {
     deck: deckFile,
     generatedAt: new Date().toISOString(),
     summary: {
-      logicalGroupsChecked: groups.length,
-      liveLogicalPagesChecked: runtime.liveLogicalPages,
-      comparisonCandidates: descriptors.length,
-      physicalPagesChecked: qualityDescriptors.length,
-      templatePagesSkipped: descriptors.length - qualityDescriptors.length,
+      ...descriptorScope,
       hydratedPhysicalPages,
       groupContractFailureCount: groupErrors.length,
-      templateClipWarningCount: 0,
       bespokeClipFailureCount: bespokeClipFailures.length,
-      dependencyFailureCount: 0,
-      dependencyWarningCount: dependencyAudit.errors.length,
+      dependencyFailureCount: dependencyAudit.errors.length,
+      dependencyWarningCount: 0,
       browserErrorCount: pageErrors.length,
     },
     groups: groupReports,
     groupErrors,
     issues,
     dependencies: dependencyAudit,
+    visualQaScope: {
+      strategy: 'bespoke-only',
+      template: 'skipped',
+      bespoke: 'checked',
+    },
     screenshotsDir,
     browserErrors: pageErrors,
   };
   writeReport(outFile, report);
-  const failed = groupErrors.length > 0
+  const failed = dependencyAudit.errors.length > 0
+    || groupErrors.length > 0
     || bespokeClipFailures.length > 0
     || pageErrors.length > 0
     || hydratedPhysicalPages !== qualityDescriptors.length;
@@ -196,21 +211,29 @@ try {
     deck: deckFile,
     generatedAt: new Date().toISOString(),
     summary: {
-      logicalGroupsChecked: 0,
-      liveLogicalPagesChecked: 0,
-      physicalPagesChecked: 0,
-      hydratedPhysicalPages: 0,
-      groupContractFailureCount: 0,
-      templateClipWarningCount: 0,
-      bespokeClipFailureCount: 0,
-      dependencyFailureCount: 0,
-      dependencyWarningCount: 0,
-      browserErrorCount: 0,
+      logicalGroupsChecked: descriptorScope?.logicalGroupsChecked ?? null,
+      liveLogicalPagesChecked: descriptorScope?.liveLogicalPagesChecked ?? null,
+      comparisonCandidates: descriptorScope?.comparisonCandidates ?? null,
+      physicalPagesChecked: descriptorScope?.physicalPagesChecked ?? null,
+      templatePagesChecked: descriptorScope?.templatePagesChecked ?? null,
+      templatePagesSkipped: descriptorScope?.templatePagesSkipped ?? null,
+      bespokePagesChecked: descriptorScope?.bespokePagesChecked ?? null,
+      hydratedPhysicalPages: null,
+      groupContractFailureCount: null,
+      bespokeClipFailureCount: null,
+      dependencyFailureCount: dependencyAudit?.errors?.length ?? null,
+      dependencyWarningCount: dependencyAudit ? 0 : null,
+      browserErrorCount: null,
     },
     groups: [],
     groupErrors: [],
     issues: [],
-    dependencies: null,
+    dependencies: dependencyAudit,
+    visualQaScope: {
+      strategy: 'bespoke-only',
+      template: descriptorScope ? 'skipped' : 'not-reached',
+      bespoke: descriptorScope ? 'attempted' : 'not-reached',
+    },
     browserErrors: [],
     fatalError: error?.message || String(error),
   };
@@ -220,6 +243,65 @@ try {
   process.exitCode = 1;
 } finally {
   await browser?.close().catch(() => {});
+}
+
+async function installDeckAssetRoute(page, rootDir) {
+  const root = path.resolve(rootDir);
+  await page.route('http://dashi.local/**', async route => {
+    try {
+      const requestUrl = new URL(route.request().url());
+      const decoded = decodeURIComponent(requestUrl.pathname).replace(/^\/+/, '');
+      let file = path.resolve(root, decoded || 'index.html');
+      if (file !== root && !file.startsWith(`${root}${path.sep}`)) {
+        await route.fulfill({ status: 403, body: 'Forbidden' });
+        return;
+      }
+      if (existsSync(file) && statSync(file).isDirectory()) file = path.join(file, 'index.html');
+      if (!existsSync(file) || !statSync(file).isFile()) {
+        await route.fulfill({ status: 404, body: 'Not found' });
+        return;
+      }
+      await route.fulfill({
+        status: 200,
+        contentType: contentTypeForFile(file),
+        body: readFileSync(file),
+      });
+    } catch (error) {
+      await route.fulfill({ status: 500, body: error?.message || 'Internal error' });
+    }
+  });
+}
+
+function withDeckBase(html) {
+  const base = '<base href="http://dashi.local/">';
+  if (/<head(?:\s[^>]*)?>/i.test(html)) {
+    return html.replace(/<head(?:\s[^>]*)?>/i, match => `${match}${base}`);
+  }
+  return `${base}${html}`;
+}
+
+function contentTypeForFile(file) {
+  return {
+    '.css': 'text/css; charset=utf-8',
+    '.gif': 'image/gif',
+    '.html': 'text/html; charset=utf-8',
+    '.ico': 'image/x-icon',
+    '.jpeg': 'image/jpeg',
+    '.jpg': 'image/jpeg',
+    '.js': 'text/javascript; charset=utf-8',
+    '.json': 'application/json; charset=utf-8',
+    '.mjs': 'text/javascript; charset=utf-8',
+    '.mov': 'video/quicktime',
+    '.mp4': 'video/mp4',
+    '.otf': 'font/otf',
+    '.png': 'image/png',
+    '.svg': 'image/svg+xml',
+    '.ttf': 'font/ttf',
+    '.wasm': 'application/wasm',
+    '.webm': 'video/webm',
+    '.woff': 'font/woff',
+    '.woff2': 'font/woff2',
+  }[path.extname(file).toLowerCase()] || 'application/octet-stream';
 }
 
 async function inspectExportCandidate(page, descriptor, screenshotsDir) {

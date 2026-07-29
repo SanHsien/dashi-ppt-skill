@@ -64,6 +64,10 @@ const EMPTY_REQUIRED_CONTENT_SHAPE = {
   valueItemCount: 0,
   rawNumericItemCount: 0,
   textualValueItemCount: 0,
+  unitItemCount: 0,
+  secondaryLabelItemCount: 0,
+  durationItemCount: 0,
+  pageLabelItemCount: 0,
   nestedDepth: 0,
   requiresValue: false,
 };
@@ -95,6 +99,20 @@ export function contentShapeFromPresentation(presentation = {}, hints = {}) {
       || String(item.displayValue) !== String(item.value)
     )
   )).length || positive('textualValueItemCount');
+  const unitItemCount = items.filter(item => hasContentValue(item?.unit)).length
+    || positive('unitItemCount');
+  const secondaryLabelItemCount = items.filter(item => (
+    hasContentValue(item?.secondaryLabel)
+    || hasContentValue(item?.projectionSecondaryLabel)
+  )).length || positive('secondaryLabelItemCount');
+  const durationItemCount = items.filter(item => (
+    hasContentValue(item?.duration)
+    || hasContentValue(item?.projectionDuration)
+  )).length || positive('durationItemCount');
+  const pageLabelItemCount = items.filter(item => (
+    hasContentValue(item?.pageLabel)
+    || hasContentValue(item?.projectionPageLabel)
+  )).length || positive('pageLabelItemCount');
   const itemCount = items.length || positive('itemCount');
   const minimumProjectionSlots = items.length
     ? Math.max(1, Math.ceil(items.length / 2))
@@ -111,6 +129,10 @@ export function contentShapeFromPresentation(presentation = {}, hints = {}) {
       valueItemCount,
       rawNumericItemCount,
       textualValueItemCount,
+      unitItemCount,
+      secondaryLabelItemCount,
+      durationItemCount,
+      pageLabelItemCount,
       nestedDepth: positive('requiredNestedDepth') || positive('nestedDepth'),
       requiresValue: valueItemCount > 0,
     },
@@ -420,6 +442,10 @@ function normalizeContentShape(value) {
   const rawNumericItemCount = number(sourceRequired, 'rawNumericItemCount')
     || (sourceRequired.valueItemCount == null ? legacyNumericItemCount : 0);
   const textualValueItemCount = number(sourceRequired, 'textualValueItemCount');
+  const unitItemCount = number(sourceRequired, 'unitItemCount');
+  const secondaryLabelItemCount = number(sourceRequired, 'secondaryLabelItemCount');
+  const durationItemCount = number(sourceRequired, 'durationItemCount');
+  const pageLabelItemCount = number(sourceRequired, 'pageLabelItemCount');
   const normalized = {
     deferred: value.deferred === true,
     required: {
@@ -431,6 +457,10 @@ function normalizeContentShape(value) {
       valueItemCount,
       rawNumericItemCount,
       textualValueItemCount,
+      unitItemCount,
+      secondaryLabelItemCount,
+      durationItemCount,
+      pageLabelItemCount,
       nestedDepth: number(sourceRequired, 'nestedDepth'),
       requiresValue: Boolean(sourceRequired.requiresValue || valueItemCount),
     },
@@ -532,34 +562,93 @@ function arraySupportsNumericItems(field) {
 function presentationFieldForTarget(key, type, field = {}) {
   const name = String(key || '').toLowerCase();
   const container = String(field.key || '').toLowerCase().split('.').at(-1)?.replace(/\[\]$/g, '') || '';
-  const siblingKeys = new Set(Object.keys(field.itemShape || {}).map(item => item.toLowerCase()));
-  if (type === 'number') return 'value';
+  const containerRole = String(field.role || '').toLowerCase();
+  const itemEntries = Object.entries(field.itemShape || {});
+  const siblingKeys = new Set(itemEntries.map(([item]) => item.toLowerCase()));
+  const siblingTypes = new Map(itemEntries.map(([item, itemType]) => [item.toLowerCase(), itemType]));
+  const itemFieldEntries = Object.entries(field.itemFields || {});
+  const itemField = itemFieldEntries
+    .find(([itemKey]) => String(itemKey).toLowerCase() === name)?.[1] || {};
+  const siblingRoles = new Map(itemFieldEntries.map(([itemKey, contract]) => [
+    String(itemKey).toLowerCase(),
+    String(contract?.role || '').toLowerCase(),
+  ]));
+  const contractRole = String(itemField.role || '').toLowerCase();
+  const numericSource = 'value';
+  const metricContainer = containerRole === 'metric'
+    || /^(?:stats|metrics|kpis|metricsdata|indicators|scores|factsdata)$/.test(container);
+  const chapterContainer = containerRole === 'chapter'
+    || /^(?:contents|index|chapters|agenda)$/.test(container);
+  const durationContainer = /^(?:tracks|songs|playlist|setlist)$/.test(container);
+  const hasTitleSibling = ['t', 'title', 'label', 'name', 'big', 'cn', 'zh', 'nm', 'lb']
+    .some(item => siblingKeys.has(item));
+  const hasMetricSibling = itemEntries.some(([itemKey, itemType]) => (
+    itemKey.toLowerCase() !== name
+    && (itemType === 'number'
+      || siblingRoles.get(itemKey.toLowerCase()) === 'metric'
+      || /^(?:v|value|amount|amt|metric|stat|pct|percent|score|avg|disp|val)$/.test(itemKey.toLowerCase()))
+  ));
+
   if (type === 'boolean' && /focus|active|highlight|selected|up|positive/.test(name)) return 'focus';
+
+  // Short fields are interpreted only inside their real container contract.
+  // Page, duration, metric and secondary-label slots require corresponding
+  // canonical data; they never fall back to an ordinal or ordinary label.
+  if (name === 'pg' || name === 'page' || name === 'pageno' || name === 'pagenumber') {
+    return 'pageLabel';
+  }
+  if (/^(?:unit|suffix)$/.test(name)
+    || (name === 'u' && (metricContainer || hasMetricSibling))) return 'unit';
   if (container === 'quotes') {
     if (name === 'q') return 'detail';
     if (name === 'n') return 'label';
     if (name === 'r') return 'secondaryLabel';
     if (name === 'm') return 'initial';
   }
-  if (name === 'pg' || name === 'page') return 'pageLabel';
-  if (name === 'e') return 'secondaryLabel';
+  if (name === 'd') {
+    if (type === 'number') return numericSource;
+    if (durationContainer) return 'duration';
+    if (contractRole === 'metric' || metricContainer) return 'displayValue';
+    if (contractRole === 'body' || contractRole === 'paragraph' || hasTitleSibling) return 'detail';
+    return null;
+  }
+  if (name === 'e') {
+    if (type === 'number') return numericSource;
+    if (contractRole === 'body' || contractRole === 'paragraph') return 'detail';
+    if (chapterContainer || siblingKeys.has('t') || siblingKeys.has('n') || siblingKeys.has('pg')) {
+      return 'secondaryLabel';
+    }
+    return null;
+  }
   if (name === 'n') {
-    if (field.role === 'metric' || /^(stats|metrics|kpis)$/.test(container)) return 'displayValue';
-    if (/^(quotes|artists)$/.test(container)) return 'label';
-    if (siblingKeys.has('t') || siblingKeys.has('big') || siblingKeys.has('sub')) return 'ordinal';
+    if (type === 'number') return numericSource;
+    if (contractRole === 'metric' || metricContainer) return 'displayValue';
+    if (/^(?:quotes|artists)$/.test(container)) return 'label';
+    if (hasTitleSibling) return 'ordinal';
     return 'label';
   }
-  if (/^(s|d)$/.test(name)) return 'detail';
-  if (/^(no|num)$/.test(name)) return 'ordinal';
+  if (name === 't') {
+    return contractRole === 'body' || contractRole === 'paragraph' ? 'detail' : 'label';
+  }
+  if (name === 's') {
+    if (type === 'number') return numericSource;
+    if (contractRole === 'metric' || metricContainer) return 'displayValue';
+    if (container === 'artists' && siblingTypes.has('v')) return 'displayValue';
+    return hasTitleSibling ? 'secondaryLabel' : null;
+  }
+  if ((name === 'l' || name === 'lb') && (metricContainer || hasMetricSibling)) return 'label';
+
+  if (type === 'number') return numericSource;
+  if (contractRole === 'metric') return 'displayValue';
+  if (contractRole === 'body' || contractRole === 'paragraph') return 'detail';
+  if (/^(?:no|num)$/.test(name)) return 'ordinal';
   if (/body|detail|description|desc|note|summary|sub|caption|copy|text/.test(name)) return 'detail';
-  if (/^(v)$|value|amount|score|number|metric|stat|pct|percent|share|tag|fig|delta|rate/.test(name)) return 'displayValue';
-  if (/phase|stage|period|time|rank|index/.test(name)) return 'displayValue';
-  if (/^(k|t)$|label|name|title|heading|category|series|item|dim|^en$/.test(name)) return 'label';
-  if (/unit|suffix/.test(name)) return 'unit';
+  if (/^(?:v)$|value|amount|score|number|metric|stat|pct|percent|share|delta|rate/.test(name)) return 'displayValue';
+  if (/rank|index/.test(name)) return 'ordinal';
+  if (/^(?:k|t)$|label|name|title|heading|category|series|item|dim|^en$|phase|stage|period|time|tag/.test(name)) return 'label';
   if (/^id$|key/.test(name)) return 'id';
   return null;
 }
-
 function scalarPresentationFieldForTarget(key, type) {
   const name = String(key || '').toLowerCase();
   if (/body|detail|description|desc|note|summary|sub|caption|copy|text/.test(name)) return 'detail';
@@ -653,9 +742,16 @@ function collectScalarContentContainers(layout, normalized) {
       itemCount,
     );
     const requiredTextualValueCount = Math.min(required.textualValueItemCount, itemCount);
+    const requiredUnitCount = Math.min(required.unitItemCount, itemCount);
+    const valueSlots = activeSlots.filter(slot => (
+      slot.fields.value || slot.fields.displayValue
+    )).length;
+    const unitSlots = activeSlots.filter(slot => slot.fields.unit).length;
     const requiredFits = (!required.itemCount || slots.length >= (required.minItemCount || itemCount))
       && valueCapacity >= requiredValueCount
-      && textualValueCapacity >= requiredTextualValueCount;
+      && textualValueCapacity >= requiredTextualValueCount
+      && requiredValueCount >= valueSlots
+      && requiredUnitCount >= unitSlots;
     const slack = required.itemCount ? Math.max(0, slots.length - required.itemCount) : slots.length;
     const fields = new Set(slots.flatMap(slot => Object.keys(slot.fields)));
     const supportsDetail = fields.has('detail');
@@ -720,8 +816,12 @@ function collectArrayContentContainers(layout, normalized) {
           .filter(item => item.source);
       const supported = new Set(mappedFields.map(item => item.source));
       const numericTargetCount = mappedFields.filter(item => item.source === 'value').length;
-      const supportsNumericValue = numericTargetCount === 1;
+      const supportsNumericValue = numericTargetCount > 0;
       const supportsTextualValue = mappedFields.some(item => item.source === 'displayValue');
+      const requiresUnit = mappedFields.some(item => item.source === 'unit');
+      const requiresSecondaryLabel = mappedFields.some(item => item.source === 'secondaryLabel');
+      const requiresDuration = mappedFields.some(item => item.source === 'duration');
+      const requiresPageLabel = mappedFields.some(item => item.source === 'pageLabel');
       const supportsInlineValue = supported.has('label');
       const supportsValue = supportsNumericValue || supportsTextualValue || supportsInlineValue;
       const supportsDetail = supported.has('detail');
@@ -732,21 +832,48 @@ function collectArrayContentContainers(layout, normalized) {
         || (required.requiresValue ? required.itemCount : 0);
       const containerRoleScore = primaryContainerRoleScore(field);
       const semanticFits = containerRoleScore > -24;
+      const canSupplementWithCanonicalText = !supportsNumericValue
+        && !supportsTextualValue
+        && !requiresUnit
+        && Boolean(preferred.summaryChars || preferred.takeawayChars);
       const projectedItemCount = required.itemCount
         ? Math.min(required.itemCount, capacity)
         : capacity;
+      const effectiveProjectedItemCount = canSupplementWithCanonicalText
+        ? Math.min(capacity, Math.max(projectedItemCount, minimumCapacity))
+        : projectedItemCount;
       const minimumItemCount = required.minItemCount || required.itemCount;
-      const projectedValueCount = Math.min(requiredValueCount, projectedItemCount);
+      const projectedValueCount = Math.min(requiredValueCount, effectiveProjectedItemCount);
       const projectedTextualValueCount = Math.min(
         required.textualValueItemCount,
-        projectedItemCount,
+        effectiveProjectedItemCount,
       );
+      const canonicalValueTargetFits = !supportsNumericValue && !supportsTextualValue
+        ? true
+        : supportsNumericValue
+          ? requiredValueCount > 0
+          : requiredValueCount >= effectiveProjectedItemCount;
+      const canonicalUnitTargetFits = !requiresUnit
+        || required.unitItemCount >= (
+          supportsNumericValue ? projectedValueCount : effectiveProjectedItemCount
+        );
+      const canonicalSecondaryLabelTargetFits = !requiresSecondaryLabel
+        || required.secondaryLabelItemCount >= effectiveProjectedItemCount;
+      const canonicalDurationTargetFits = !requiresDuration
+        || required.durationItemCount >= effectiveProjectedItemCount;
+      const canonicalPageLabelTargetFits = !requiresPageLabel
+        || required.pageLabelItemCount >= effectiveProjectedItemCount;
       const requiredFits = semanticFits && (!required.itemCount || (
         capacity >= minimumItemCount
-        && projectedItemCount >= minimumCapacity
+        && effectiveProjectedItemCount >= minimumCapacity
       ))
         && valueCapacity >= projectedValueCount
-        && textualValueCapacity >= projectedTextualValueCount;
+        && textualValueCapacity >= projectedTextualValueCount
+        && canonicalValueTargetFits
+        && canonicalUnitTargetFits
+        && canonicalSecondaryLabelTargetFits
+        && canonicalDurationTargetFits
+        && canonicalPageLabelTargetFits;
       const slack = required.itemCount ? Math.max(0, capacity - projectedItemCount) : capacity;
       const shapeFieldCount = field.itemShape && typeof field.itemShape === 'object'
         && !Array.isArray(field.itemShape)
@@ -826,7 +953,12 @@ export function buildTemplateProjectionPlan(layout, shape = null) {
   const required = contentShape?.required || EMPTY_REQUIRED_CONTENT_SHAPE;
   const preferred = contentShape?.preferred || EMPTY_PREFERRED_CONTENT_SHAPE;
   const text = layout.fillPlan?.text || [];
+  const contentContainers = collectContentContainers(layout, contentShape);
+  const contentContainerTargets = new Set(
+    contentContainers.flatMap(container => container.targetPaths || []),
+  );
   const titleTarget = text
+    .filter(field => !contentContainerTargets.has(field.key))
     .map(field => ({
       field,
       score: titleTargetScore(field),
@@ -840,7 +972,6 @@ export function buildTemplateProjectionPlan(layout, shape = null) {
   const paragraphs = text
     .filter(field => field.role === 'body' || field.role === 'paragraph')
     .sort((left, right) => (Number(right.maxChars) || 0) - (Number(left.maxChars) || 0));
-  const contentContainers = collectContentContainers(layout, contentShape);
   const primaryContentContainer = required.itemCount
     ? selectPrimaryContentContainer(layout, contentShape)
     : null;
@@ -988,17 +1119,26 @@ function titleTargetScore(field) {
   const pathName = String(field.key || '').toLowerCase();
   const parts = pathName.split('.');
   const leafKey = parts.at(-1)?.replace(/\[\]$/g, '') || pathName;
+  // Theme11's authored fields use semantic names such as headingHtml and
+  // headlineHtml. Strip only that renderer suffix; do not promote arbitrary
+  // nested *.title or generic root copy to page-title status.
+  const semanticLeaf = leafKey.replace(/html$/, '');
   if (pathName.includes('[]')) return 0;
   const pageScoped = parts.length === 1 || (parts.length === 2 && parts[0] === 'copy');
+  const role = String(field.role || '').toLowerCase();
   let nameScore = 0;
-  if (/^title$|pagetitle|headline|heading|subject|topic/.test(leafKey)) nameScore = 30;
-  else if (/^title(?:top|cn|zh|main|primary|l1|line1|a)$/.test(leafKey)) nameScore = 26;
-  else if (/^title(?:bottom|en|sub|secondary|l2|line2|b)$/.test(leafKey)) nameScore = 22;
-  else if (/^title(?:l|line)?\d+|^title[a-z]+/.test(leafKey)) nameScore = 18;
-  if (field.role === 'title' && pageScoped && nameScore) return 200 + nameScore;
-  if (field.role === 'title') return 170;
+  if (/^(?:title|pagetitle|platetitle|decktitle|headline|heading|subject|topic)(?:line)?1?$/.test(semanticLeaf)) nameScore = 30;
+  else if (/^title(?:top|cn|zh|main|primary|l1|line1|a)$/.test(semanticLeaf)) nameScore = 26;
+  else if (/^title(?:bottom|en|sub|secondary|l2|line2|b)$/.test(semanticLeaf)) nameScore = 22;
+  else if (/^title(?:l|line)?\d+$|^title[a-z]+$/.test(semanticLeaf)) nameScore = 18;
+  if (role === 'title' && pageScoped && nameScore) return 200 + nameScore;
+  if (role === 'title') return 170;
   if (pageScoped && nameScore) return 130 + nameScore;
-  if (pageScoped && /slogan|statement|claim/.test(leafKey)) return 80;
+  if (pageScoped && /^(?:slogan(?:line)?1?|statement|claim|quote)$/.test(semanticLeaf)) return 80;
+  // Imported opaque themes expose their primary authored copy as copy.text001.
+  // Restrict the fallback to that first structured slot rather than promoting
+  // arbitrary copy.* or root fields (for example captions or axis labels).
+  if (parts.length === 2 && parts[0] === 'copy' && /^text0*1$/.test(semanticLeaf)) return 72;
   return 0;
 }
 

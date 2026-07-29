@@ -301,13 +301,39 @@ export function deriveTemplateItems(presentation = {}, options = {}) {
       .map(String)
       .filter(value => !existingLabels.has(value))
       .filter((value, index, values) => values.indexOf(value) === index);
+    const authoredCoverLabels = Array.isArray(presentation?.coverLabels)
+      ? presentation.coverLabels.filter(hasMappedValue).map(String)
+      : [];
+    const narrativeFallbackValues = [
+      presentation?.titleShort,
+      presentation?.title,
+      presentation?.summaryShort,
+      presentation?.summary,
+      presentation?.takeaway,
+    ]
+      .filter(hasMappedValue)
+      .map(String)
+      .filter((value, index, values) => values.indexOf(value) === index);
     const fallbackStart = merged.length;
     fallbackValues.slice(0, Math.max(0, 8 - fallbackStart)).forEach((label, index) => {
-      const detail = fallbackValues[(index + 1) % fallbackValues.length] || '';
+      const coverIndex = authoredCoverLabels.indexOf(label);
+      const secondaryLabel = authoredCoverLabels.length > 1
+        ? authoredCoverLabels[
+            ((coverIndex >= 0 ? coverIndex : index) + 1) % authoredCoverLabels.length
+          ]
+        : (coverIndex < 0 ? authoredCoverLabels[0] || '' : '');
+      const detail = narrativeFallbackValues[index % narrativeFallbackValues.length]
+        || fallbackValues.find(value => value !== label && value !== secondaryLabel)
+        || '';
+      const coverValue = authoredCoverLabels.includes(label)
+        ? projectionValueFromCoverLabel(label)
+        : null;
       merged.push(normalizeProjectionItem({
         id: `text-${fallbackStart + index + 1}`,
-        label,
+        label: coverValue?.label || label,
+        ...(secondaryLabel ? { secondaryLabel } : {}),
         detail: detail === label ? '' : detail,
+        ...(coverValue ? { displayValue: coverValue.displayValue } : {}),
         focus: index === 0,
       }));
     });
@@ -315,21 +341,36 @@ export function deriveTemplateItems(presentation = {}, options = {}) {
   return merged.map((item, index) => withProjectionAliases(item, index));
 }
 
+function projectionValueFromCoverLabel(value) {
+  const match = String(value || '').trim().match(
+    /^([+-]?\d+(?:[.,]\d+)?(?:%|[KMBT]|万|亿)?)(?:(?:\s+|[·|/]\s*)(.*))?$/i,
+  );
+  if (!match) return null;
+  return {
+    displayValue: match[1],
+    label: String(match[2] || match[1]).trim(),
+  };
+}
+
 function withProjectionAliases(item, index) {
   const label = String(item?.label || '');
   const detail = String(item?.detail || '');
+  const secondaryLabel = String(item?.secondaryLabel || '');
+  const duration = String(item?.duration || '');
   const displayValue = String(item?.displayValue || '');
   const unit = String(item?.unit || '');
-  const pageLabel = String(item?.pageLabel ?? item?.pageNumber ?? '');
+  const pageLabel = String(item?.pageLabel || '');
   const ordinal = String(index + 1);
   return {
     ...item,
     projectionOrdinal: ordinal,
     projectionLabel: [ordinal, label].filter(hasMappedValue).join('. '),
     projectionDetail: [label, detail].filter(hasMappedValue).join('：') || label || ordinal,
-    projectionValue: displayValue || ordinal,
-    projectionUnit: unit || ordinal,
+    projectionValue: displayValue,
+    projectionUnit: unit,
     projectionTag: [label, displayValue].filter(hasMappedValue).join(' · ') || label || ordinal,
+    projectionSecondaryLabel: secondaryLabel,
+    projectionDuration: duration,
     projectionPageLabel: pageLabel,
     projectionInitial: label.trim().slice(0, 1),
   };
@@ -420,9 +461,23 @@ function projectionCharLength(value) {
   return Math.ceil(width);
 }
 
+function firstMappedString(...values) {
+  const value = values.find(hasMappedValue);
+  return value === undefined ? '' : String(value);
+}
+
 function normalizeProjectionItem(item = {}) {
   const label = hasMappedValue(item?.label) ? String(item.label) : '';
   const detail = hasMappedValue(item?.detail) ? String(item.detail) : '';
+  const secondaryLabel = firstMappedString(
+    item?.secondaryLabel,
+    item?.englishLabel,
+    item?.english,
+    item?.en,
+    item?.subtitle,
+  );
+  const duration = firstMappedString(item?.duration, item?.durationLabel);
+  const pageLabel = firstMappedString(item?.pageLabel, item?.pageNumber);
   const unit = hasMappedValue(item?.unit) ? String(item.unit) : '';
   const displayValue = formatValueWithUnit(
     item?.value,
@@ -440,6 +495,9 @@ function normalizeProjectionItem(item = {}) {
     ...item,
     label,
     detail,
+    secondaryLabel,
+    duration,
+    pageLabel,
     unit,
     emptyText: '',
     focus: Boolean(item?.focus),
