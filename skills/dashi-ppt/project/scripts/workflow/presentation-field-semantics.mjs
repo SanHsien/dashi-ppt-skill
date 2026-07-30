@@ -124,20 +124,24 @@ export function resolvePresentationFieldDecision(key, type, field = {}) {
 
   if (!SCALAR_ITEM_TYPES.has(itemType)) return decide(null, 'unsupported-item-type');
 
-  // idx is a structural position in every real theme contract. Keep this
-  // before all type-based rules so a numeric idx can never become business
-  // value or unit data.
-  if (name === 'idx') return decide('ordinal', 'idx-is-structural-ordinal');
-
   // Existing projector behavior treats array booleans as state/focus fields.
   // Resolve it here so the planner sees the same semantic.
   if (itemType === 'boolean') return decide('focus', 'boolean-state-field');
 
+  // Structural numbers are positions or page references, never business
+  // metrics. Resolve every authored string/number form before container,
+  // contract-role, and generic numeric rules can reinterpret it as a value.
+  if (STRUCTURAL_NUMERIC_KEYS.test(name)) {
+    if (name === 'pg' || name === 'page' || name === 'pageno' || name === 'pagenumber') {
+      return decide('pageLabel', 'page-field');
+    }
+    if (name === 'idx') return decide('ordinal', 'idx-is-structural-ordinal');
+    if (name === 'no' || name === 'num') return decide('ordinal', 'ordinal-long-field');
+    return decide('ordinal', 'ordinal-index-field');
+  }
+
   // Page, duration, metric and secondary-label targets require their matching
   // canonical data. They never borrow an ordinal or ordinary label source.
-  if (name === 'pg' || name === 'page' || name === 'pageno' || name === 'pagenumber') {
-    return decide('pageLabel', 'page-field');
-  }
   if (/^(?:unit|suffix)$/.test(name)
     || (name === 'u' && (metricContainer || hasMetricSibling))) {
     return decide('unit', 'unit-field-in-metric-context');
@@ -205,7 +209,6 @@ export function resolvePresentationFieldDecision(key, type, field = {}) {
   if (contractRole === 'body' || contractRole === 'paragraph') {
     return decide('detail', 'body-contract-role');
   }
-  if (/^(?:no|num)$/.test(name)) return decide('ordinal', 'ordinal-long-field');
   if (/body|detail|description|desc|note|summary|sub|caption|copy|text/.test(name)) {
     return decide('detail', 'detail-long-field');
   }
