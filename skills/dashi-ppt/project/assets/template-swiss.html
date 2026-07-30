@@ -8623,7 +8623,7 @@ refreshRailCatalog();
 
   function buildHtmlExportStateClosure(state, slides, visibleSlides, variantSelection, exportedProps){
     const retainedLogicalIds = new Set();
-    const ownerLogicalIds = new Map();
+    const ownerRecordsByType = new Map();
     const retainedSyncKeys = new Set();
     const visibleById = new Map((visibleSlides || []).map(slide => [
       slide.dataset.vmSourceSlideId || slide.dataset.vmSlideId,
@@ -8636,13 +8636,21 @@ refreshRailCatalog();
     );
     const runtimeSlides = window.__deckViewModel?.model?.slides || [];
     const liveSlides = new Map(runtimeSlides.map(slide => [String(slide?.id || ''), slide]));
+    const ordinaryTextOwnerTypes = ['variantKey', 'logicalKey', 'logicalId'];
+    const syncTextOwnerTypes = ['variantStateId', 'variantKey', 'logicalId'];
+    const mediaOwnerTypes = ['variantStateId', 'variantKey', 'logicalStateId', 'logicalKey', 'logicalId'];
+    const propsOwnerTypes = ['variantStateId', 'logicalStateId'];
 
-    const registerOwner = (value, logicalId) => {
+    const registerOwner = (type, value, logicalId) => {
       const owner = String(value || '');
       const pageId = String(logicalId || '');
-      if(!owner || !pageId) return;
-      if(!ownerLogicalIds.has(owner)) ownerLogicalIds.set(owner, new Set());
-      ownerLogicalIds.get(owner).add(pageId);
+      if(!type || !owner || !pageId) return;
+      if(!ownerRecordsByType.has(type)) ownerRecordsByType.set(type, new Map());
+      const recordsByOwner = ownerRecordsByType.get(type);
+      if(!recordsByOwner.has(owner)) recordsByOwner.set(owner, []);
+      const records = recordsByOwner.get(owner);
+      if(records.some(record => record.logicalId === pageId)) return;
+      records.push({owner, type, logicalId:pageId});
     };
     const rememberSyncName = name => {
       const syncName = String(name || '');
@@ -8652,38 +8660,52 @@ refreshRailCatalog();
     runtimeSlides.forEach(logical => {
       const logicalId = String(logical?.id || '');
       if(!logicalId) return;
-      registerOwner(logicalId, logicalId);
-      registerOwner(logical?.stateId, logicalId);
-      registerOwner(logical?.key, logicalId);
+      registerOwner('logicalId', logicalId, logicalId);
+      registerOwner('logicalStateId', logical?.stateId || logicalId, logicalId);
+      registerOwner('logicalKey', logical?.key, logicalId);
       (Array.isArray(logical?.variants) ? logical.variants : []).forEach(variant => {
-        registerOwner(variant?.stateId, logicalId);
-        registerOwner(variant?.key, logicalId);
+        registerOwner('variantStateId', variant?.stateId, logicalId);
+        registerOwner('variantKey', variant?.key, logicalId);
       });
     });
 
-    const sortedOwners = [...ownerLogicalIds.entries()]
-      .sort(([left], [right]) => right.length - left.length || left.localeCompare(right));
-    const resolveOwner = value => {
+    const sortedOwnerRecordsByType = new Map(
+      [...ownerRecordsByType.entries()].map(([type, recordsByOwner]) => [
+        type,
+        [...recordsByOwner.entries()]
+          .sort(([left], [right]) => right.length - left.length || left.localeCompare(right)),
+      ]),
+    );
+    const resolveOwner = (value, channel, ownerTypes, exact=false) => {
       const candidate = String(value || '');
       if(!candidate) return null;
-      for(const [owner, logicalOwnerIds] of sortedOwners){
-        if(candidate === owner || (
-          candidate.startsWith(owner)
-          && candidate.charAt(owner.length) === ':'
-        )){
-          return {owner, logicalOwnerIds};
+      for(const type of ownerTypes){
+        const records = sortedOwnerRecordsByType.get(type) || [];
+        for(const [owner, ownerRecords] of records){
+          const matchesOwner = exact
+            ? candidate === owner
+            : candidate === owner || (
+                candidate.startsWith(owner)
+                && candidate.charAt(owner.length) === ':'
+              );
+          if(!matchesOwner) continue;
+          const logicalIds = [...new Set(ownerRecords.map(record => record.logicalId))];
+          const retained = logicalIds.filter(logicalId => retainedLogicalIds.has(logicalId));
+          const excluded = logicalIds.filter(logicalId => !retainedLogicalIds.has(logicalId));
+          if(retained.length && excluded.length){
+            throw new Error(
+              `[dashi-ppt] HTML export state closure ambiguous owner "${owner}" in ${channel} state channel (${type}): retained logical slides [${retained.join(', ')}] conflict with excluded logical slides [${excluded.join(', ')}].`,
+            );
+          }
+          return {
+            owner,
+            type,
+            logicalIds,
+            retained:retained.length > 0,
+          };
         }
       }
       return null;
-    };
-    const isRetainedOwner = resolved => (
-      Boolean(resolved)
-      && [...resolved.logicalOwnerIds].some(logicalId => retainedLogicalIds.has(logicalId))
-    );
-    const isRetainedExactOwner = value => {
-      const logicalOwnerIds = ownerLogicalIds.get(String(value || ''));
-      return Boolean(logicalOwnerIds)
-        && [...logicalOwnerIds].some(logicalId => retainedLogicalIds.has(logicalId));
     };
 
     (slides || []).forEach(logical => {
@@ -8741,23 +8763,26 @@ refreshRailCatalog();
     const text = {};
     Object.entries(state?.text || {}).forEach(([key, value]) => {
       if(key.startsWith('text:')){
-        if(isRetainedOwner(resolveOwner(key.slice(5)))) text[key] = value;
+        const owner = resolveOwner(key.slice(5), 'ordinary text', ordinaryTextOwnerTypes);
+        if(owner?.retained) text[key] = value;
         return;
       }
       if(key.startsWith('sync:')){
-        const owner = resolveOwner(key.slice(5));
-        if(owner ? isRetainedOwner(owner) : retainedSyncKeys.has(key)) text[key] = value;
+        const owner = resolveOwner(key.slice(5), 'sync text', syncTextOwnerTypes);
+        if(owner ? owner.retained : retainedSyncKeys.has(key)) text[key] = value;
       }
     });
 
     const media = {};
     Object.entries(state?.media || {}).forEach(([key, value]) => {
-      if(isRetainedOwner(resolveOwner(key))) media[key] = value;
+      const owner = resolveOwner(key, 'media', mediaOwnerTypes);
+      if(owner?.retained) media[key] = value;
     });
 
     const props = {};
     Object.entries(exportedProps || {}).forEach(([key, value]) => {
-      if(isRetainedExactOwner(key)) props[key] = value;
+      const owner = resolveOwner(key, 'props', propsOwnerTypes, true);
+      if(owner?.retained) props[key] = value;
     });
 
     return {
