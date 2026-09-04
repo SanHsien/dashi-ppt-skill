@@ -1,1 +1,11 @@
 blank_issues_enabled: true
+contact_links:
+  - name: 本 fork 的貢獻指南
+    url: https://github.com/SanHsien/dashi-ppt-skill/blob/main/CONTRIBUTING.md
+    about: 這裡是 SanHsien 的維護型 fork。先讀貢獻指南，再決定要開在哪一邊。
+  - name: 產品問題請回報上游
+    url: https://github.com/chuspeeism/dashi-ppt-skill/issues
+    about: 主題、版式、生成器與匯出引擎由上游開發。產品缺陷請開在上游 repo。
+  - name: 安全性問題
+    url: https://github.com/SanHsien/dashi-ppt-skill/security/advisories/new
+    about: 請私下回報，不要開公開 Issue。

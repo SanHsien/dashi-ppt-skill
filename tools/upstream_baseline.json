@@ -1,0 +1,9 @@
+{
+  "repo": "https://github.com/chuspeeism/dashi-ppt-skill.git",
+  "branch": "main",
+  "reviewed_through": "7cb23347f91cda1a5519eafc8c040704e389535a",
+  "reviewed_date": "2026-09-04",
+  "notes": "Fork overlay established at upstream 7cb2334 (Publish skill v0.4.11, 2026-07-30). No product files changed: skills/, npm-dist/ and .claude-plugin/ match upstream. Commit, PR and issue watermarks all start at the fork point, so the first scheduled upstream-check run reports everything upstream has done since as unreviewed -- that is the intended state, not a failure.",
+  "reviewed_pr_through": 0,
+  "reviewed_issue_through": 0
+}

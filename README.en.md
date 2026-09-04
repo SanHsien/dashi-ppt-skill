@@ -13,7 +13,9 @@
 ![Qclaw](https://img.shields.io/badge/Qclaw-Supported-14B8A6?style=flat-square)
 [![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-blue?style=flat-square)](./LICENSE)
 
-> 🌏 **中文版：[README.md](./README.md)**
+[繁體中文](README.md) | English | [简体中文](README.zh-CN.md)
+
+> **SanHsien maintenance fork.** The product itself is developed and owned by upstream [`chuspeeism/dashi-ppt-skill`](https://github.com/chuspeeism/dashi-ppt-skill); this line only adds a Windows-first maintenance overlay and a Traditional Chinese entry point. See [`FORK.md`](FORK.md) and [`NOTICE.md`](NOTICE.md).
 
 A PPT skill built for people who actually present at work. Hand a document to your AI agent and get back a deck where every page carries its own editing console — fix whatever you don't like right in the browser, then export a real, editable PPTX with one click.
 
