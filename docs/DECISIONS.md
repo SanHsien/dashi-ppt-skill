@@ -10,6 +10,20 @@
 Fork point 就是上游 `main` 的 head，所以 **commit 軸 0 筆**。PR 與 issue 軸從 0 起算，
 本輪一次триaged 完：**PR #2–#36（7 筆）、issue #1–#43（35 筆）**，水位推進到 PR 36 / issue 43。
 
+### D-10 三個安全性警示：登記，但要不要為此分叉產品樹留給維護者決定
+
+啟用安全性更新後當天就出現三筆（細節見 [`../REVIEW.md`](../REVIEW.md) R-07）：
+`image-size` 兩筆 high（runtime，畸形圖片 → 無窮迴圈，而本 skill 的核心操作就是上傳圖片）、
+`esbuild` 一筆 low（development，**Windows** 開發伺服器任意檔案讀取，而本 fork 是 Windows-first
+且預覽服務預設同區網可存取）。
+
+**沒有自行合併。** 三筆都在上游持有的 `package-lock.json` 上，改了就與 D-02 衝突，而且本線
+從未 `npm install` 過這棵樹——把一個沒跑過的 lockfile 變更合進來，等於用「應該可以」當驗證。
+Dependabot PR #1 **刻意留著 open 當追蹤器**。
+
+D-04 的設計目的是「看得到漏洞」，不是「自動分叉」；看到之後要不要動產品樹，是政策層的決定，
+不是例行維護。**觸發條件**：維護者決定為安全性修補開例外，或上游自己發版帶進修正。
+
 ### D-07 兩支 Windows 相關的上游 PR：記錄但不採用
 
 | PR | 狀態 | 內容 | 本輪判斷 |

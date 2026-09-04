@@ -24,6 +24,7 @@
 
 | ID | 嚴重度 | Finding | 處理 |
 |---|---|---|---|
+| R-07 | P1 | **三個 Dependabot 安全性警示，全在上游 lockfile 的間接依賴上**（`skills/dashi-ppt/project/package-lock.json`，`package.json` 沒有直接宣告它們）：`image-size` 兩筆 **high**（GHSA-w3rx-r6r6-pgpr、GHSA-5p2g-fcmc-qvqq，ICNS / JXL / HEIF 解析器可被畸形圖片打進無窮迴圈）屬 **runtime** 範圍——而這個 skill 的核心操作就是讓使用者拖放上傳圖片；`esbuild` 一筆 low（GHSA-g7r4-m6w7-qqqr，**Windows 上**開發伺服器可被讀取任意檔案）屬 development 範圍，但本 fork 正是 Windows-first，且預覽服務**預設在同一區網可存取**。 | **待決策，未處理。** 修這三個都要改上游持有的 lockfile，與 [`docs/DECISIONS.md`](docs/DECISIONS.md) D-02「產品樹不動」直接衝突。Dependabot PR [#1](https://github.com/SanHsien/dashi-ppt-skill/pull/1)（esbuild 0.28.0→0.28.2）**刻意留 open 當追蹤器**，不是忘了關。`image-size` 沒有對應 PR。本線尚未 `npm install` 過，也未實測任一 CVE 是否真的可觸發——**不宣稱**已評估可利用性。 |
 | R-06 | P2 | **`render:themes` script 不存在，但預覽流程會呼叫它。** `skills/dashi-ppt/project/scripts/preview-freshness.mjs:48` 在主題預覽過期時執行 `npm run render:themes`，而 `skills/dashi-ppt/project/package.json` 的 `scripts` 沒有這個項目——主題預覽一旦過期，預覽流程必然中斷。對應上游 issue #29。 | **不在本 fork 修**：正確修法（補 script 還是改呼叫端）由上游決定，本線先修會在下次同步對撞。已記在 [`docs/DECISIONS.md`](docs/DECISIONS.md) D-08，並登記在上游 issue 水位內。 |
 
 ## 刻意不修
