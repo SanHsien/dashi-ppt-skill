@@ -10,6 +10,20 @@
 
 ---
 
+## 2026-09-04（安全性例外）
+
+### 安全性
+
+- **esbuild 0.28.0 → 0.28.2**（lockfile only，`package.json` 的 `^0.28.0` 未動）。修 GHSA-g7r4-m6w7-qqqr：`< 0.28.1` 的開發伺服器在 **Windows 上**可被讀取任意檔案——本 fork 是 Windows-first，預覽服務預設同區網可存取，所以這條比它的 low 評分更值得修。這是 [`docs/DECISIONS.md`](docs/DECISIONS.md) D-02「產品樹不動」的第一個例外，規則寫在 D-11。
+- **驗證**：升級前後各跑一次 scaffold → validate → render → export PPTX。渲染出的 `index.html` **逐位元相同**（sha256 一致，498,463 bytes），PPTX 大小、可編輯文字物件數（48）與警告數（15）皆相同。`npm ci` 全新安裝 exit 0。細節見 [`REVIEW.md`](REVIEW.md)。
+- **`image-size` 兩筆 high 無法修**（GHSA-w3rx-r6r6-pgpr、GHSA-5p2g-fcmc-qvqq）：沒有已修正的版本，`pptxgenjs` 最新版仍相依它，`npm audit fix --force` 的建議會把 pptxgenjs 降到 1.1.5 毀掉匯出引擎。改為在 [`SECURITY.md`](SECURITY.md) 揭露已知問題與可行的迴避方式。
+
+### 新增
+
+- `tests/test_docs.py::test_security_exception_floor_still_holds`：釘住 lockfile 的 esbuild `>= 0.28.1`，上游同步若把 lockfile 蓋回舊版會讓 CI 紅，而不是靜默回退。
+
+---
+
 ## 2026-09-04（fork overlay 建立）
 
 Fork 自上游 `7cb2334`（`Publish skill v0.4.11`，2026-07-30）。**產品未改**：

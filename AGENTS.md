@@ -15,6 +15,7 @@
 ## 硬性邊界
 
 - **不要改寫產品 skill。** `skills/dashi-ppt/SKILL.md`、`references/`、`agents/`、`assets/`、`scripts/`、`project/` 是給宿主 Agent 安裝的產品規格與執行時，不是本 fork 的維護索引。`npm-dist/`、`.claude-plugin/` 同樣以上游為準，除非有已記錄的 fork 修正（見 `FORK.md` 與 `docs/DECISIONS.md`）。維護規則以本檔為準。
+  - **唯一例外是安全性修補**（`docs/DECISIONS.md` D-11，維護者核可）。三個條件缺一不可：能只動 lockfile 就不動 `package.json`、升級前後跑完整生成流程**比對產物一致**（跑得起來不算過）、加測試釘住版本下限避免下次同步靜默回退。目前唯一在用的例外是 `tests/test_docs.py::test_security_exception_floor_still_holds` 釘的 esbuild `>= 0.28.1`。
 - **不要把產品內容翻成繁體來「統一文件語言」。** 上游產品語言是簡體中文；本 fork 的公開入口與維護文件用繁體中文與英文，簡中原檔保留在 `README.zh-CN.md`。
 - **授權不可動。** 本專案是 AGPL-3.0，不是 MIT。不要改 `LICENSE`、不要移除著作權標示、不要把 AGPL 檔案重新授權。子套件 `skills/dashi-ppt/project/packages/html-deck-to-pptx` 是**專有元件**，不得單獨提取、複製或再散布——包含「抽出來做成獨立工具」這類重構。
 - 不提交 `.env`、API key、cookie、真實客戶簡報內容或客戶資料當 fixture。`output/`、`uploads/`、`node_modules/` 不入版控。

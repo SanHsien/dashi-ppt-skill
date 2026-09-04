@@ -21,6 +21,9 @@ skills/dashi-ppt/project/node_modules/
 output/
 skills/dashi-ppt/project/output/
 uploads/
+# Written by the generator on every scaffold/render/export run.
+workflow-telemetry.json
+skills/dashi-ppt/project/workflow-telemetry.json
 screens/
 screenshots/
 shots/

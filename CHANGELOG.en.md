@@ -11,6 +11,20 @@ Per-commit adopt/skip reasoning lives in [`docs/DECISIONS.md`](docs/DECISIONS.md
 
 ---
 
+## 2026-09-04 (security exception)
+
+### Security
+
+- **esbuild 0.28.0 → 0.28.2** (lockfile only; the `^0.28.0` range in `package.json` is untouched). Fixes GHSA-g7r4-m6w7-qqqr: below 0.28.1 the dev server allows arbitrary file reads **on Windows** — and this is a Windows-first fork whose preview server is reachable from the LAN by default, which makes the path matter more than its "low" score suggests. This is the first exception to the "product tree stays untouched" rule in [`docs/DECISIONS.md`](docs/DECISIONS.md) D-02; the rule for exceptions is D-11.
+- **Verification**: the full scaffold → validate → render → export PPTX pipeline was run before and after. The rendered `index.html` is **byte-identical** (same sha256, 498,463 bytes) and the PPTX matches in size, editable text objects (48), and warnings (15). A clean `npm ci` exits 0. Details in [`REVIEW.md`](REVIEW.md).
+- **The two high-severity `image-size` advisories cannot be fixed** (GHSA-w3rx-r6r6-pgpr, GHSA-5p2g-fcmc-qvqq): no patched release exists, the current `pptxgenjs` still depends on it, and `npm audit fix --force` would downgrade pptxgenjs to 1.1.5 and destroy the export engine. Disclosed in [`SECURITY.md`](SECURITY.md) with a workaround instead.
+
+### Added
+
+- `tests/test_docs.py::test_security_exception_floor_still_holds` pins the lockfile's esbuild to `>= 0.28.1`, so an upstream sync that restores the old lockfile turns CI red instead of silently undoing the fix.
+
+---
+
 ## 2026-09-04 (fork overlay established)
 
 Forked at upstream `7cb2334` (`Publish skill v0.4.11`, 2026-07-30). **The product is unchanged**:

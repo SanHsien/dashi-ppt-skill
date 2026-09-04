@@ -33,6 +33,11 @@
 
 產品 `skills/`、`npm-dist/`、`.claude-plugin/` 以上游為準，除非有已記錄的 fork 修正。
 
+**目前唯一的 fork 修正**：`skills/dashi-ppt/project/package-lock.json` 的 esbuild 釘在 `>= 0.28.1`
+（安全性例外，見 [`docs/DECISIONS.md`](docs/DECISIONS.md) D-11 與 [`REVIEW.md`](REVIEW.md) R-07）。
+上游同步時**不要**讓舊 lockfile 蓋回去——`tests/test_docs.py::test_security_exception_floor_still_holds`
+會擋下來。
+
 ## 授權邊界
 
 上游是 **AGPL-3.0**，不是 MIT。本 fork 的維護性修改同樣以 AGPL-3.0 釋出。

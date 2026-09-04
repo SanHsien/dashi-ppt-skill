@@ -66,6 +66,24 @@ def test_proprietary_export_engine_keeps_its_own_license() -> None:
     assert "MIT" not in notice.split("## Proprietary component")[0]
 
 
+def test_security_exception_floor_still_holds() -> None:
+    """The one product-tree change this fork owns: esbuild >= 0.28.1.
+
+    GHSA-g7r4-m6w7-qqqr lets the esbuild dev server read arbitrary files on
+    Windows, and this is a Windows-first fork whose preview server is reachable
+    from the LAN by default. An upstream sync that restores the old lockfile
+    would silently undo the fix, so the floor is asserted rather than trusted.
+    """
+    lock = json.loads(
+        (ROOT / "skills" / "dashi-ppt" / "project" / "package-lock.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    version = lock["packages"]["node_modules/esbuild"]["version"]
+    parts = tuple(int(part) for part in version.split(".")[:3])
+    assert parts >= (0, 28, 1), f"esbuild {version} is below the security floor"
+
+
 def test_maintainer_markdown_links_resolve() -> None:
     failures = 0
     for path in check_links.iter_documents():
