@@ -51,7 +51,7 @@ python tools/check_upstream_updates.py --strict
 
 | 日期 | commit 水位 | PR 水位 | issue 水位 | 說明 |
 |---|---|---|---|---|
-| 2026-09-04 | `7cb2334` | 0 | 0 | Fork overlay 建立點（上游 `Publish skill v0.4.11`，2026-07-30）。產品未改；PR／issue 水位從 0 起算，第一次排程檢查會把上游至今全部列為待審——這是預期狀態。 |
+| 2026-09-04 | `7cb2334` | 36 | 43 | Fork overlay 建立（上游 `Publish skill v0.4.11`，2026-07-30）＋首輪四面向審查：commit 0 筆（fork point 就是上游 head）、PR #2–#36 共 7 筆、issue #1–#43 共 35 筆。**零採用**，產品樹未動。逐筆理由見 [`DECISIONS.md`](DECISIONS.md) D-07～D-09。 |
 
 ## 本 fork 不同步的東西
 

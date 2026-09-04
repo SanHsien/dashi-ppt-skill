@@ -2,7 +2,7 @@
 
 - Review date: 2026-09-04
 - Fork point: 上游 `7cb23347f91cda1a5519eafc8c040704e389535a`（`Publish skill v0.4.11`，2026-07-30）
-- Upstream watermarks: commit `7cb2334`；`reviewed_pr_through` / `reviewed_issue_through` = **0**（overlay 建立點，尚未逐筆審查）
+- Upstream watermarks: commit `7cb2334`（fork point 即上游 head，commit 軸 0 筆）；`reviewed_pr_through` = **36**、`reviewed_issue_through` = **43**（首輪 7 PR + 35 issue 已 triage，零採用）
 - Primary environment: Windows 11、PowerShell、Python 3.14（本機）、CI Ubuntu 3.9–3.14 + Windows 3.14、Node.js 26（本機）／22（CI）
 - Status: 維護骨架可用；產品 `skills/`、`npm-dist/`、`.claude-plugin/` 未改寫
 
@@ -19,6 +19,12 @@
 | R-01 | P2 | 上游是 **AGPL-3.0**，且 `skills/dashi-ppt/project/packages/html-deck-to-pptx` 附獨立的**專有授權**（禁止單獨提取、複製、再散布）。本線多數 repo 是 MIT fork，照舊習慣寫 NOTICE 會把授權寫錯，而寫錯的後果是散布時的法律風險。 | `NOTICE.md` / `FORK.md` / `README.md` 三處明寫 AGPL-3.0 與網路服務條款，並單獨一節說明專有子套件邊界。`tests/test_docs.py::test_proprietary_export_engine_keeps_its_own_license` 鎖住該 LICENSE 存在且 NOTICE 有提到它。 |
 | R-02 | P2 | 上游 `README.md` 是簡體中文，本線慣例是繁中主檔。就地翻譯會讓上游每次更新 README 都變成整檔衝突。 | `git mv README.md README.zh-CN.md` 保留原檔，新寫繁中 `README.md`，`README.en.md` 加 fork 說明；三者互相連結。`test_public_readmes_are_a_three_way_set` 鎖住。理由見 [`docs/DECISIONS.md`](docs/DECISIONS.md) D-01。 |
 | R-03 | P3 | 上游 `.github/ISSUE_TEMPLATE/config.yml` 只有 `blank_issues_enabled: true`，訪客會把產品缺陷開到這個 fork。 | 加 contact links：本 fork 的 `CONTRIBUTING.md`、上游 issues、安全性通報入口。`test_issue_contact_links_point_at_this_fork` 鎖住。 |
+
+## 上游持有、本線不修
+
+| ID | 嚴重度 | Finding | 處理 |
+|---|---|---|---|
+| R-06 | P2 | **`render:themes` script 不存在，但預覽流程會呼叫它。** `skills/dashi-ppt/project/scripts/preview-freshness.mjs:48` 在主題預覽過期時執行 `npm run render:themes`，而 `skills/dashi-ppt/project/package.json` 的 `scripts` 沒有這個項目——主題預覽一旦過期，預覽流程必然中斷。對應上游 issue #29。 | **不在本 fork 修**：正確修法（補 script 還是改呼叫端）由上游決定，本線先修會在下次同步對撞。已記在 [`docs/DECISIONS.md`](docs/DECISIONS.md) D-08，並登記在上游 issue 水位內。 |
 
 ## 刻意不修
 

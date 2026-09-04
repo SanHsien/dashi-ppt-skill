@@ -3,7 +3,7 @@
   "branch": "main",
   "reviewed_through": "7cb23347f91cda1a5519eafc8c040704e389535a",
   "reviewed_date": "2026-09-04",
-  "notes": "Fork overlay established at upstream 7cb2334 (Publish skill v0.4.11, 2026-07-30). No product files changed: skills/, npm-dist/ and .claude-plugin/ match upstream. Commit, PR and issue watermarks all start at the fork point, so the first scheduled upstream-check run reports everything upstream has done since as unreviewed -- that is the intended state, not a failure.",
-  "reviewed_pr_through": 0,
-  "reviewed_issue_through": 0
+  "notes": "Fork overlay established at upstream 7cb2334 (Publish skill v0.4.11, 2026-07-30); the fork point is upstream's head, so the commit axis is empty. First triage covered PR #2-#36 and issue #1-#43. Nothing adopted: no product file changed. PR #34 (Windows path case comparison) and PR #28 (native PowerShell render entry) are the two Windows-relevant items -- recorded with trigger conditions in docs/DECISIONS.md D-07 rather than cherry-picked, because pulling an unmerged upstream PR into the fork forks the product tree. Issue #29 (missing render:themes script) is reproducible in this tree and is tracked as REVIEW.md R-06, to be fixed upstream.",
+  "reviewed_pr_through": 36,
+  "reviewed_issue_through": 43
 }
