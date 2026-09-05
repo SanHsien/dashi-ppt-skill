@@ -2917,7 +2917,7 @@
   function replaceKnownDataUrls(value, entries){
     if(Array.isArray(value)) return value.map(item => replaceKnownDataUrls(item, entries));
     if(value && typeof value === 'object'){
-      const next = {};
+      const next = Object.create(null);
       for(const [key, item] of Object.entries(value)) next[key] = replaceKnownDataUrls(item, entries);
       return next;
     }
@@ -2937,7 +2937,44 @@
   // 富文本可能被程序化写入 contenteditable(el.innerHTML = value),必须剥离脚本/事件处理器/
   // 危险元素才安全。用 <template> 解析(content 惰性,<img onerror>/<script> 不会执行),按白名单清洗。
   // 暴露为 window.__sanitizeRichText 供外部/测试直接调用。
-  var SANITIZE_ALLOWED_TAGS = {B:1,STRONG:1,I:1,EM:1,BR:1,SUP:1,SUB:1};
+  var SANITIZE_ALLOWED_TAGS = {
+    B:1, STRONG:1, I:1, EM:1, BR:1, SPAN:1, SMALL:1, SUP:1, SUB:1,
+  };
+  var SANITIZE_REMOVED_TAGS = {
+    SCRIPT:1, STYLE:1, SVG:1, MATH:1, IFRAME:1, OBJECT:1, EMBED:1,
+    LINK:1, META:1, BASE:1, FORM:1,
+  };
+  var SANITIZE_ALLOWED_STYLE_PROPS = {
+    'background-attachment':1, 'background-clip':1, 'background-color':1,
+    'background-image':1, 'background-origin':1, 'background-position-x':1,
+    'background-position-y':1, 'background-repeat':1, 'background-size':1,
+    'border-bottom-left-radius':1, 'border-bottom-right-radius':1,
+    'border-top-left-radius':1, 'border-top-right-radius':1, 'box-shadow':1,
+    color:1, display:1, 'font-family':1, 'font-size':1, 'font-weight':1,
+    height:1, 'letter-spacing':1, 'line-height':1, 'margin-top':1,
+    overflow:1, 'overflow-x':1, 'overflow-y':1,
+    'padding-bottom':1, 'padding-left':1, 'padding-right':1, 'padding-top':1,
+    'text-align':1, 'text-overflow':1, 'text-wrap-mode':1, transform:1,
+    'white-space':1, 'white-space-collapse':1, width:1,
+  };
+  function sanitizeRichTextStyle(element){
+    var safe = [];
+    var safeClass = element.getAttribute('class');
+    var safeAriaHidden = element.getAttribute('aria-hidden');
+    var safeEditableSkip = element.getAttribute('data-editable-skip');
+    for(var i=0;i<element.style.length;i++){
+      var name = String(element.style[i] || '').toLowerCase();
+      var value = element.style.getPropertyValue(name);
+      if(!SANITIZE_ALLOWED_STYLE_PROPS[name]) continue;
+      if(/(?:url\s*\(|expression\s*\(|javascript\s*:|@import|-moz-binding)/i.test(value)) continue;
+      safe.push([name, value]);
+    }
+    while(element.attributes.length) element.removeAttribute(element.attributes[0].name);
+    if(safeClass && /^(?:[A-Za-z0-9_-]+\s*)+$/.test(safeClass)) element.setAttribute('class', safeClass.trim());
+    if(safeAriaHidden === 'true' || safeAriaHidden === 'false') element.setAttribute('aria-hidden', safeAriaHidden);
+    if(safeEditableSkip === 'true') element.setAttribute('data-editable-skip', 'true');
+    safe.forEach(function(entry){ element.style.setProperty(entry[0], entry[1]); });
+  }
   function sanitizeRichText(value){
     if (typeof value !== 'string' || value.indexOf('<') === -1) return value;
     var tpl = document.createElement('template');
@@ -2947,11 +2984,13 @@
       for (var i=0;i<children.length;i++){
         var child = children[i];
         if (child.nodeType === 1){
+          if (SANITIZE_REMOVED_TAGS[child.tagName]) {
+            child.remove();
+            continue;
+          }
           walk(child);
           if (SANITIZE_ALLOWED_TAGS[child.tagName]){
-            while (child.attributes.length) child.removeAttribute(child.attributes[0].name);
-          } else if (child.tagName === 'SCRIPT' || child.tagName === 'STYLE') {
-            child.remove();
+            sanitizeRichTextStyle(child);
           } else {
             child.replaceWith.apply(child, Array.prototype.slice.call(child.childNodes));
           }
@@ -2990,7 +3029,7 @@
       return items.slice(0, end).map(item => isOmittedAuthoredProp(item) ? {} : item);
     }
     if(current && typeof current === 'object'){
-      const out = {};
+      const out = Object.create(null);
       Object.entries(current).forEach(([key, value]) => {
         if(path && isPrivateNestedPropKey(key)) return;
         const child = compactAuthoredPropValue(
@@ -3010,7 +3049,7 @@
   }
 
   function diffAuthoredRootForState(authored, source){
-    const out = {};
+    const out = Object.create(null);
     Object.entries(authored || {}).forEach(([key, value]) => {
       if(JSON.stringify(value) !== JSON.stringify(source?.[key])) out[key] = value;
     });
@@ -3044,7 +3083,7 @@
   }
 
   function mergePropsStates(...states){
-    const out = {};
+    const out = Object.create(null);
     states.forEach(state => {
       Object.entries(state || {}).forEach(([slideId, values]) => {
         out[slideId] = {...(out[slideId] || {}), ...(values || {})};
@@ -3054,7 +3093,7 @@
   }
 
   function normalizeRestoredProps(props){
-    const out = {};
+    const out = Object.create(null);
     Object.entries(props || {}).forEach(([slideId, rawValues]) => {
       const normalized = normalizeRestoredSlideProps(slideId, rawValues);
       if(normalized && Object.keys(normalized).length) out[slideId] = normalized;
@@ -3120,7 +3159,7 @@
   }
 
   function normalizeVariantSelections(source){
-    const out = {};
+    const out = Object.create(null);
     for(const slide of vm.slides || []){
       if(!Array.isArray(slide.variants) || !slide.variants.length) continue;
       const requested = source?.[slide.id];
@@ -4190,7 +4229,7 @@ function materializeSlideVariant(slide, variant, opts={}){
       window.__replaceEditableTextState?.(previousTextState);
       slide.querySelectorAll('[data-editable-id]').forEach(element => {
         const value = previousEditableText.get(element.dataset.editableId);
-        if(value !== undefined) element.innerHTML = value;
+        if(value !== undefined) element.innerHTML = window.__sanitizeRichText(value);
       });
     }
     return restored;
@@ -9517,7 +9556,7 @@ refreshRailCatalog();
   const deck = document.getElementById('deck');
   if(!deck) return;
   const stateEl = document.getElementById('embedded-text-state');
-  const textState = readTextState();
+  const textState = sanitizeTextState(readTextState());
   const defaultTextState = window.__deckDefaultTextState || {};
   const textCounters = new Map();
   const renderedTextBaselines = new WeakMap();
@@ -9529,7 +9568,9 @@ refreshRailCatalog();
   window.__flushEditableTextState = flushTextState;
   window.__replaceEditableTextState = state => {
     Object.keys(textState).forEach(key => delete textState[key]);
-    Object.assign(textState, state || {});
+    Object.entries(state || {}).forEach(([key, value]) => {
+      textState[key] = sanitizeTextStateValue(value);
+    });
     writeTextState();
   };
   applyTextState(deck);
@@ -9562,8 +9603,10 @@ refreshRailCatalog();
         defaultTextState[`sync:${el.dataset.syncText}`] = el.innerHTML;
       }
       const synced = el.dataset.syncText ? textState[`sync:${el.dataset.syncText}`] : undefined;
-      if(synced !== undefined) el.innerHTML = synced;
-      else if(textState[el.dataset.editableId] !== undefined) el.innerHTML = textState[el.dataset.editableId];
+      if(synced !== undefined) el.innerHTML = sanitizeTextStateValue(synced);
+      else if(textState[el.dataset.editableId] !== undefined) {
+        el.innerHTML = sanitizeTextStateValue(textState[el.dataset.editableId]);
+      }
       makeEditable(el);
     });
 
@@ -9727,7 +9770,7 @@ refreshRailCatalog();
     const alreadySaved = Object.prototype.hasOwnProperty.call(textState, key)
       || (syncKey && Object.prototype.hasOwnProperty.call(textState, syncKey));
     if(!opts.userEdit && !alreadySaved) return;
-    const value = el.innerHTML;
+    const value = sanitizeTextStateValue(el.innerHTML);
     const baseline = renderedTextBaselines.get(el);
     if(value === baseline){
       delete textState[key];
@@ -9762,11 +9805,12 @@ refreshRailCatalog();
 
 	  function restoreTextElement(key, syncName, value){
 	    if(!key) return;
-	    textState[key] = value;
-	    if(syncName) textState[`sync:${syncName}`] = value;
+	    const safeValue = sanitizeTextStateValue(value);
+	    textState[key] = safeValue;
+	    if(syncName) textState[`sync:${syncName}`] = safeValue;
 	    deck.querySelectorAll('[data-editable-id]').forEach(el => {
 	      if(el.dataset.editableId === key || (syncName && el.dataset.syncText === syncName)){
-	        el.innerHTML = value;
+	        el.innerHTML = safeValue;
 	      }
 	    });
 	    writeTextState();
@@ -9811,6 +9855,21 @@ refreshRailCatalog();
     } catch {
       return {};
     }
+  }
+
+  function sanitizeTextStateValue(value){
+    const sanitizer = window.__sanitizeRichText;
+    if(typeof sanitizer !== 'function') return '';
+    const sanitized = sanitizer(value);
+    return typeof sanitized === 'string' ? sanitized : '';
+  }
+
+  function sanitizeTextState(source){
+    const sanitized = Object.create(null);
+    Object.entries(source || {}).forEach(([key, value]) => {
+      sanitized[key] = sanitizeTextStateValue(value);
+    });
+    return sanitized;
   }
 
   function isTextCandidate(el){

@@ -71,7 +71,7 @@ function extensionForMime(mime) {
 function replaceDataUrlStrings(value, transform) {
   if (Array.isArray(value)) return value.map(item => replaceDataUrlStrings(item, transform));
   if (isPlainObject(value)) {
-    const next = {};
+    const next = Object.create(null);
     for (const [key, item] of Object.entries(value)) next[key] = replaceDataUrlStrings(item, transform);
     return next;
   }
@@ -92,7 +92,7 @@ export function extractDataUrlMedia(state, deckDir) {
   const mediaDir = path.join(deckDir, 'assets/user-media');
   const written = [];
   const cache = new Map();
-  const mediaMap = {};
+  const mediaMap = Object.create(null);
   const transform = raw => {
     if (cache.has(raw)) return cache.get(raw);
     const decoded = decodeDataUrl(raw);

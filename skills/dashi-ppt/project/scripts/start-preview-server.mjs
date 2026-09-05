@@ -1,7 +1,23 @@
 #!/usr/bin/env node
 import { createHash } from 'node:crypto';
 import { execFileSync, spawn } from 'node:child_process';
-import { closeSync, existsSync, mkdirSync, openSync, readdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import {
+  chmodSync,
+  closeSync,
+  constants,
+  existsSync,
+  ftruncateSync,
+  lstatSync,
+  mkdirSync,
+  openSync,
+  readdirSync,
+  readFileSync,
+  renameSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+  writeSync,
+} from 'node:fs';
 import http from 'node:http';
 import https from 'node:https';
 import net from 'node:net';
@@ -21,7 +37,11 @@ const requestedPort = Number(process.env.DASHI_PPT_PREVIEW_PORT || process.argv[
 const host = process.env.DASHI_PPT_PREVIEW_HOST || process.env.HOST || '0.0.0.0';
 const localName = process.env.DASHI_PPT_PREVIEW_NAME || os.hostname().split('.')[0] || 'localhost';
 const portScanLimit = Math.max(40, Number(process.env.DASHI_PPT_PREVIEW_PORT_SCAN || 240));
-const lockDir = process.env.DASHI_PPT_PREVIEW_LOCK_DIR || path.join(os.tmpdir(), 'dashi-ppt-preview-ports');
+const runtimeRoot = process.env.LOCALAPPDATA || process.env.XDG_RUNTIME_DIR || path.join(os.homedir(), '.cache');
+const lockDir = process.env.DASHI_PPT_PREVIEW_LOCK_DIR || path.join(runtimeRoot, 'dashi-ppt', 'preview-ports');
+const legacyLockDir = process.env.DASHI_PPT_PREVIEW_LOCK_DIR
+  ? null
+  : path.join(os.tmpdir(), 'dashi-ppt-preview-ports');
 const incompleteStartLockStaleMs = 1000;
 
 const isDirectRun = Boolean(process.argv[1]) && path.resolve(process.argv[1]) === path.resolve(import.meta.filename);
@@ -33,6 +53,7 @@ if (isDirectRun) {
 }
 
 async function main() {
+  ensurePrivateDirectory(lockDir);
   reclaimStaleLockDir(lockDir);
 
   if (!existsSync(path.join(serveRoot, 'index.html'))) {
@@ -52,8 +73,7 @@ async function main() {
     const port = reservation.port;
     const logFile = previewLogFilePath(serveRoot);
     mkdirSync(serveRoot, { recursive: true });
-    mkdirSync(path.dirname(logFile), { recursive: true });
-    const output = openSync(logFile, 'a');
+    const output = openPrivateAppendFile(logFile);
     // 常驻服务不得继承宿主会话的临时目录:沙箱型 Agent App(如豆包)的 TMPDIR 指向
     // 自己的沙箱,会话结束目录即被清理,而 daemonize 的服务还活着——之后导出时
     // Playwright launch 的 mkdtemp 直接 ENOENT。这里出生即剥离,让服务用系统默认
@@ -123,7 +143,7 @@ async function reserveAvailablePort(start, bindHost) {
   throw new Error(`No available preview port found from ${base} to ${base + portScanLimit - 1}`);
 }
 
-async function stopExistingPreviewForServeRoot(root) {
+export async function stopExistingPreviewForServeRoot(root) {
   const stateFile = path.join(root, '.preview-server.json');
   if (!existsSync(stateFile)) return;
   let state = null;
@@ -137,13 +157,24 @@ async function stopExistingPreviewForServeRoot(root) {
   const statePort = Number.isInteger(state.port) && state.port > 0 ? state.port : null;
   if (!statePid || !statePort) return;
 
-  const lockFile = path.join(lockDir, `preview-${statePort}.lock`);
-  let lock = null;
-  try {
-    lock = JSON.parse(readFileSync(lockFile, 'utf8'));
-  } catch {
-    return;
+  const lockFiles = [path.join(lockDir, `preview-${statePort}.lock`)];
+  if (legacyLockDir && path.resolve(legacyLockDir) !== path.resolve(lockDir)) {
+    lockFiles.push(path.join(legacyLockDir, `preview-${statePort}.lock`));
   }
+  let lockFile = null;
+  let lock = null;
+  for (const candidate of lockFiles) {
+    try {
+      const parsed = JSON.parse(readFileSync(candidate, 'utf8'));
+      const candidateRoot = parsed.serveRoot ? path.resolve(String(parsed.serveRoot)) : '';
+      if (parsed.port === statePort && parsed.pid === statePid && candidateRoot === path.resolve(root)) {
+        lockFile = candidate;
+        lock = parsed;
+        break;
+      }
+    } catch {}
+  }
+  if (!lockFile || !lock) return;
 
   const expectedRoot = path.resolve(root);
   const lockRoot = lock.serveRoot ? path.resolve(String(lock.serveRoot)) : '';
@@ -172,7 +203,7 @@ async function stopExistingPreviewForServeRoot(root) {
 }
 
 function acquireServeRootStartLock(root) {
-  mkdirSync(lockDir, { recursive: true });
+  ensurePrivateDirectory(lockDir);
   const lockPath = serveRootStartLockPath(root);
   for (let attempt = 0; attempt < 600; attempt += 1) {
     try {
@@ -266,32 +297,47 @@ async function waitForPidExit(pid, timeoutMs) {
   return !isPidAlive(pid);
 }
 
-async function reservePortLock(port, bindHost) {
-  mkdirSync(lockDir, { recursive: true });
+export async function reservePortLock(port, bindHost) {
+  ensurePrivateDirectory(lockDir);
   const lockFile = path.join(lockDir, `preview-${port}.lock`);
   for (let attempt = 0; attempt < 2; attempt += 1) {
     try {
       const fd = openSync(lockFile, 'wx');
-      writeFileSync(fd, `${JSON.stringify({
-        port,
-        pid: process.pid,
-        state: 'starting',
-        startedAt: new Date().toISOString(),
-      })}\n`);
-      closeSync(fd);
+      let fdOpen = true;
+      const closeReservation = () => {
+        if (!fdOpen) return;
+        fdOpen = false;
+        closeSync(fd);
+      };
+      try {
+        writeSync(fd, `${JSON.stringify({
+          port,
+          pid: process.pid,
+          state: 'starting',
+          startedAt: new Date().toISOString(),
+        })}\n`, 0, 'utf8');
+      } catch (error) {
+        closeReservation();
+        throw error;
+      }
       return {
         port,
         commit(pid, metadata = {}) {
-          writeFileSync(lockFile, `${JSON.stringify({
+          if (!fdOpen) throw new Error(`Preview port reservation ${port} is already closed.`);
+          const payload = `${JSON.stringify({
             port,
             pid,
             parentPid: process.pid,
             serveRoot,
             logFile: metadata.logFile,
             startedAt: new Date().toISOString(),
-          })}\n`);
+          })}\n`;
+          ftruncateSync(fd, 0);
+          writeSync(fd, payload, 0, 'utf8');
+          closeReservation();
         },
         release() {
+          closeReservation();
           rmSync(lockFile, { force: true });
         },
       };
@@ -301,6 +347,30 @@ async function reservePortLock(port, bindHost) {
     }
   }
   return null;
+}
+
+export function ensurePrivateDirectory(targetDir) {
+  mkdirSync(targetDir, { recursive: true, mode: 0o700 });
+  let info = lstatSync(targetDir);
+  if (info.isSymbolicLink() || !info.isDirectory()) {
+    throw new Error(`Preview runtime path is not a real directory: ${targetDir}`);
+  }
+  if (typeof process.getuid === 'function' && info.uid !== process.getuid()) {
+    throw new Error(`Preview runtime directory is not owned by the current user: ${targetDir}`);
+  }
+  if (process.platform !== 'win32' && (info.mode & 0o077) !== 0) {
+    chmodSync(targetDir, 0o700);
+    info = lstatSync(targetDir);
+    if ((info.mode & 0o077) !== 0) {
+      throw new Error(`Preview runtime directory permissions are not private: ${targetDir}`);
+    }
+  }
+}
+
+export function openPrivateAppendFile(file) {
+  ensurePrivateDirectory(path.dirname(file));
+  const noFollow = constants.O_NOFOLLOW || 0;
+  return openSync(file, constants.O_WRONLY | constants.O_CREAT | constants.O_APPEND | noFollow, 0o600);
 }
 
 async function tryRemoveStalePortLock(lockFile, bindHost) {
@@ -353,6 +423,16 @@ function isProcessAlive(pid) {
 
 function processCommandLine(pid) {
   try {
+    if (process.platform === 'win32') {
+      const script = `(Get-CimInstance Win32_Process -Filter "ProcessId = ${pid}" -ErrorAction Stop).CommandLine`;
+      return execFileSync('powershell.exe', [
+        '-NoLogo',
+        '-NoProfile',
+        '-NonInteractive',
+        '-Command',
+        script,
+      ], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim();
+    }
     return execFileSync('ps', ['-p', String(pid), '-o', 'command='], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim();
   } catch {
     return '';

@@ -10,6 +10,20 @@
 
 ---
 
+## 2026-09-06（CodeQL 安全修補）
+
+### 安全性
+
+- 清洗 editable rich-text state 後才寫入 DOM，阻斷 stored XSS；保留安全的基本格式標記。
+- deck state 與 media map 改用 null-prototype 容器，避免外部 key 改寫物件原型。
+- deck asset route 解析並限制 real path，以同一檔案描述元讀取，拒絕 symlink 逃逸。
+- preview lock／log 搬到使用者私有 runtime 目錄；log 禁止跟隨 symlink，port reservation 到
+  commit 沿用原 exclusive fd。
+- 新增跨平台 Node 安全測試並接入 Windows gate 與 Ubuntu CI。判讀與驗收門檻見
+  [`docs/DECISIONS.md`](docs/DECISIONS.md) D-12。
+
+---
+
 ## 2026-09-04（安全性例外）
 
 ### 安全性

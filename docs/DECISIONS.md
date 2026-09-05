@@ -5,6 +5,55 @@
 
 ---
 
+## 2026-09-06 — D-12 CodeQL 產品樹安全修補
+
+**決定**：套用 D-11 的安全性例外，修正 CodeQL 在產品樹確認的四組可信資料流：
+
+- editable text state 寫回 `innerHTML` 前未清洗，可能執行 stored DOM XSS；
+- 遞迴重建 deck state 時把外部 key 寫進一般物件，`__proto__` 可改寫回傳物件原型；
+- 品質檢查的虛擬 asset route 只做字串路徑 containment，deck root 內 symlink 可讀到外部檔案；
+- preview 的可預測 lock／log 位於共享系統 temp，Unix 多使用者環境可預置路徑或在 reservation
+  與 commit 間替換成 symlink。
+
+**最小修法**：rich text 採允許標記與安全樣式白名單；state 容器改成 null-prototype；asset
+route 在載入不受信任頁面前建立固定 manifest，再以 identity-bound fd 讀取；preview runtime 搬到使用者私有目錄，log 使用
+`O_NOFOLLOW`，port reservation 從 exclusive create 到 commit 都沿用原 fd。`tests/security/*.test.mjs`
+覆蓋一般輸入、惡意 HTML、prototype key、lexical／symlink 逃逸與 POSIX symlink replacement；
+Windows 無法建立 symlink 的案例由 Ubuntu CI 執行。
+
+**不改的 17 筆**：validator-only regex/entity decode 沒有 HTML sink；image slot 只流向 media
+`src`；registry substring 命中後只回傳固定常數；內容雜湊媒體、憑證與 sentinel 的競態限同權限
+本機程序；self-signed HTTPS 僅用於本機 preview readiness probe。這些逐筆以 `false positive` 或
+`won't fix` 關閉，不用破壞產品功能換取掃描綠燈。
+
+| Alert | Rule | 判定 | 依據 |
+| --- | --- | --- | --- |
+| #1 | `js/incomplete-url-substring-sanitization` | false positive | substring 只選擇固定 registry URL，輸入不會成為 URL |
+| #2 | `js/bad-tag-filter` | false positive | goal-copy validator 診斷字串，沒有 HTML sink |
+| #3–#4 | `js/incomplete-multi-character-sanitization` | false positive | Swiss validator 正規化／檢查字串，不輸出可執行 HTML |
+| #5–#6 | `js/double-escaping` | false positive | validators 比對序列化結果，沒有瀏覽器 sink |
+| #7 | `js/xss-through-dom` | false positive | image slot 僅寫入 `img`／`video` 的 `src` |
+| #8–#9 | `js/xss-through-dom` | fixed | editable text state 入 DOM 前以行為測試覆蓋的白名單 sanitizer 清洗 |
+| #10 | `js/disabling-certificate-validation` | won't fix | 僅探測本機 self-signed preview readiness，不傳送 secrets 或 body |
+| #11 | `js/remote-property-injection` | fixed | server 與 browser reconciliation 的遞迴容器均改為 null-prototype |
+| #12 | `js/remote-property-injection` | false positive | mediaMap key 只能來自已解碼的 `data:image`／`data:video`；另已防禦性強化容器 |
+| #13 | `js/remote-property-injection` | false positive | transition mode 與 color 均由固定集合／色碼格式限制 |
+| #14 | `js/file-system-race` | false positive | 同使用者專案 `.npmrc` 的 best-effort registry 維護 |
+| #15 | `js/file-system-race` | false positive | SHA-256 內容位址檔名；競爭寫入的是相同 bytes |
+| #16 | `js/file-system-race` | false positive | 固定本機憑證／輸出；競態只會使啟動失敗，不會繞過 trust |
+| #17 | `js/file-system-race` | false positive | poster sibling 是同使用者 best-effort staging |
+| #18 | `js/file-system-race` | fixed | 頁面載入前固定 manifest；開啟後比對 identity，Linux 再驗證 fd 實際路徑，並以同一 fd 讀取 |
+| #19 | `js/file-system-race` | false positive | 輸出 sentinel 為同使用者本機狀態，不跨 trust boundary |
+| #20 | `js/insecure-temporary-file` | false positive | atomic `mkdir` lock directory 加 UUID ownership token |
+| #21–#22、#24 | `js/insecure-temporary-file` | fixed | port／start locks 與 logs 改到私有 user runtime；reservation 沿用 exclusive fd |
+| #23 | `js/insecure-temporary-file` | false positive | `openSync(..., 'wx')` exclusive create，不跟隨既存 symlink |
+
+**驗收門檻**：固定 benign goal 的 scaffold → validate → render → export 前後比對、Windows gate、
+Ubuntu／Windows CI、CodeQL 與獨立安全 review 全部通過後才合併；任何新警示都重新判讀，不沿用
+本次分類。
+
+---
+
 ## 2026-09-04 — 首輪上游四面向審查
 
 Fork point 就是上游 `main` 的 head，所以 **commit 軸 0 筆**。PR 與 issue 軸從 0 起算，
