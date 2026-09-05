@@ -2970,7 +2970,10 @@
       safe.push([name, value]);
     }
     while(element.attributes.length) element.removeAttribute(element.attributes[0].name);
-    if(safeClass && /^(?:[A-Za-z0-9_-]+\s*)+$/.test(safeClass)) element.setAttribute('class', safeClass.trim());
+    var safeClassTokens = String(safeClass || '').trim().split(/\s+/).filter(Boolean);
+    if(safeClassTokens.length && safeClassTokens.every(function(token){
+      return /^[A-Za-z0-9_-]+$/.test(token);
+    })) element.setAttribute('class', safeClassTokens.join(' '));
     if(safeAriaHidden === 'true' || safeAriaHidden === 'false') element.setAttribute('aria-hidden', safeAriaHidden);
     if(safeEditableSkip === 'true') element.setAttribute('data-editable-skip', 'true');
     safe.forEach(function(entry){ element.style.setProperty(entry[0], entry[1]); });

@@ -1,6 +1,5 @@
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
-import { randomInt } from 'node:crypto';
 import { existsSync, mkdtempSync, mkdirSync, readFileSync, renameSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -141,24 +140,14 @@ test('port reservation commit writes through the original exclusive fd', async t
   }
 });
 
-test('legacy preview lock stops the exact prior-version daemon', { timeout: 20_000 }, async t => {
+test('legacy preview lock stops the exact prior-version daemon', { timeout: 20_000 }, async () => {
   const previous = process.env.DASHI_PPT_PREVIEW_LOCK_DIR;
   delete process.env.DASHI_PPT_PREVIEW_LOCK_DIR;
   const root = tempRoot('dashi-preview-migration-');
-  const legacy = path.join(os.tmpdir(), 'dashi-ppt-preview-ports');
+  const legacy = path.join(root, 'legacy-locks');
   mkdirSync(legacy, { recursive: true });
-  let port;
-  let lock;
-  for (let attempt = 0; attempt < 20; attempt += 1) {
-    port = randomInt(50_000, 65_000);
-    lock = path.join(legacy, `preview-${port}.lock`);
-    if (!existsSync(lock)) break;
-  }
-  if (existsSync(lock)) {
-    if (previous === undefined) delete process.env.DASHI_PPT_PREVIEW_LOCK_DIR;
-    else process.env.DASHI_PPT_PREVIEW_LOCK_DIR = previous;
-    return t.skip('could not reserve a unique legacy lock fixture');
-  }
+  const port = 49_123;
+  const lock = path.join(legacy, `preview-${port}.lock`);
 
   const child = spawn(process.execPath, [
     '-e',
@@ -167,14 +156,12 @@ test('legacy preview lock stops the exact prior-version daemon', { timeout: 20_0
   ], { stdio: 'ignore' });
   try {
     const module = await import(`${startServerModule.href}?migration=${Date.now()}`);
-    for (let attempt = 0; attempt < 30 && !module.isPidAlive(child.pid); attempt += 1) {
-      await delay(100);
-    }
+    await delay(500);
     assert.equal(module.isPidAlive(child.pid), true);
     writeFileSync(path.join(root, '.preview-server.json'), `${JSON.stringify({ pid: child.pid, port })}\n`);
     writeFileSync(lock, `${JSON.stringify({ pid: child.pid, port, serveRoot: root })}\n`);
 
-    await module.stopExistingPreviewForServeRoot(root);
+    await module.stopExistingPreviewForServeRoot(root, { legacyLockDirectory: legacy });
 
     assert.equal(module.isPidAlive(child.pid), false);
     assert.equal(existsSync(lock), false);

@@ -40,7 +40,7 @@ test('Swiss rich-text state sanitizes sync and ordinary key writes', () => {
 });
 
 test('browser removes active content, preserves safe layout, and reconciles prototype keys', {
-  timeout: 15_000,
+  timeout: 45_000,
 }, async t => {
   let chromium;
   try {

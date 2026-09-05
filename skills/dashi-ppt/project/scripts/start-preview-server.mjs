@@ -143,7 +143,9 @@ async function reserveAvailablePort(start, bindHost) {
   throw new Error(`No available preview port found from ${base} to ${base + portScanLimit - 1}`);
 }
 
-export async function stopExistingPreviewForServeRoot(root) {
+export async function stopExistingPreviewForServeRoot(root, {
+  legacyLockDirectory = legacyLockDir,
+} = {}) {
   const stateFile = path.join(root, '.preview-server.json');
   if (!existsSync(stateFile)) return;
   let state = null;
@@ -158,8 +160,8 @@ export async function stopExistingPreviewForServeRoot(root) {
   if (!statePid || !statePort) return;
 
   const lockFiles = [path.join(lockDir, `preview-${statePort}.lock`)];
-  if (legacyLockDir && path.resolve(legacyLockDir) !== path.resolve(lockDir)) {
-    lockFiles.push(path.join(legacyLockDir, `preview-${statePort}.lock`));
+  if (legacyLockDirectory && path.resolve(legacyLockDirectory) !== path.resolve(lockDir)) {
+    lockFiles.push(path.join(legacyLockDirectory, `preview-${statePort}.lock`));
   }
   let lockFile = null;
   let lock = null;
