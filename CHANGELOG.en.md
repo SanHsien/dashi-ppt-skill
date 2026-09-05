@@ -11,6 +11,20 @@ Per-commit adopt/skip reasoning lives in [`docs/DECISIONS.md`](docs/DECISIONS.md
 
 ---
 
+## 2026-09-06 (CodeQL security hardening)
+
+### Security
+
+- Sanitize editable rich-text state before DOM insertion while preserving safe basic formatting.
+- Rebuild deck state and media maps with null-prototype containers.
+- Resolve and contain real deck-asset paths, then read through the same file descriptor.
+- Move preview locks and logs into a private per-user runtime directory, refuse log symlinks, and retain
+  the original exclusive descriptor through port-reservation commit.
+- Run cross-platform Node security tests in the Windows gate and Ubuntu CI. See D-12 in
+  [`docs/DECISIONS.md`](docs/DECISIONS.md) for classification and acceptance criteria.
+
+---
+
 ## 2026-09-04 (security exception)
 
 ### Security

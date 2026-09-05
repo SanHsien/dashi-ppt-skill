@@ -3,13 +3,13 @@ import {
   existsSync,
   mkdirSync,
   readFileSync,
-  statSync,
   writeFileSync,
 } from 'node:fs';
 import path from 'node:path';
 import { chromium } from 'playwright-core';
 
 import { getExportBrowserPath } from './chrome-path.mjs';
+import { createDeckAssetManifest, readDeckAsset } from './preview/deck-assets.mjs';
 import {
   auditThemeAssetProvenance,
   groupPhysicalSlides,
@@ -247,24 +247,23 @@ try {
 
 async function installDeckAssetRoute(page, rootDir) {
   const root = path.resolve(rootDir);
+  const manifest = createDeckAssetManifest(root);
   await page.route('http://dashi.local/**', async route => {
     try {
       const requestUrl = new URL(route.request().url());
       const decoded = decodeURIComponent(requestUrl.pathname).replace(/^\/+/, '');
-      let file = path.resolve(root, decoded || 'index.html');
-      if (file !== root && !file.startsWith(`${root}${path.sep}`)) {
-        await route.fulfill({ status: 403, body: 'Forbidden' });
-        return;
-      }
-      if (existsSync(file) && statSync(file).isDirectory()) file = path.join(file, 'index.html');
-      if (!existsSync(file) || !statSync(file).isFile()) {
-        await route.fulfill({ status: 404, body: 'Not found' });
+      const asset = readDeckAsset(manifest, decoded);
+      if (asset.status !== 200) {
+        await route.fulfill({
+          status: asset.status,
+          body: asset.status === 403 ? 'Forbidden' : 'Not found',
+        });
         return;
       }
       await route.fulfill({
         status: 200,
-        contentType: contentTypeForFile(file),
-        body: readFileSync(file),
+        contentType: contentTypeForFile(asset.file),
+        body: asset.body,
       });
     } catch (error) {
       await route.fulfill({ status: 500, body: error?.message || 'Internal error' });

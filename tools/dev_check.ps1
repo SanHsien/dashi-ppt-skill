@@ -71,6 +71,18 @@ foreach ($file in $jsFiles) {
     }
 }
 
+$nodeTests = @(& git ls-files "tests/security/*.test.mjs")
+if ($LASTEXITCODE -ne 0) {
+    throw "git ls-files for Node security tests failed with exit code $LASTEXITCODE"
+}
+if ($nodeTests.Count -gt 0) {
+    Write-Host "==> Node security tests ($($nodeTests.Count) files)"
+    & $nodeExe --test @nodeTests
+    if ($LASTEXITCODE -ne 0) {
+        throw "Node security tests failed with exit code $LASTEXITCODE"
+    }
+}
+
 Invoke-PythonStep -Label "Check Markdown links" -Arguments @(
     "tools\check_links.py"
 )
