@@ -62,7 +62,7 @@ npm --prefix <project 目錄> run export:pdf  -- <PPT 輸出目錄>/ppt
 | 項目 | 說明 |
 |---|---|
 | [`README.md`](README.md) | 繁中入口；上游簡中原檔保留在 [`README.zh-CN.md`](README.zh-CN.md)，英文在 [`README.en.md`](README.en.md) |
-| [`AGENTS.md`](AGENTS.md) / [`CLAUDE.md`](CLAUDE.md) | AI 維護單一真相源 |
+| [`AGENTS.md`](AGENTS.md) | AI 維護單一真相源 |
 | [`FORK.md`](FORK.md) / [`NOTICE.md`](NOTICE.md) | 與上游的關係、差異、AGPL-3.0 與專有子套件的授權邊界 |
 | [`tools/dev_check.ps1`](tools/dev_check.ps1) | Windows 本機一鍵 gate（compileall／ruff／pytest／skill 驗證／`node --check`／連結檢查） |
 | [`tools/check_upstream_updates.py`](tools/check_upstream_updates.py) | 上游 commit／PR／issue 三面向水位檢查 |
