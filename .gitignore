@@ -1,0 +1,40 @@
+# --- fork maintenance ---
+# Generated reports: rebuilt by the checkers on every run, never reviewed as source.
+upstream-review-report.md
+dependency-freshness-report.md
+
+# Local Python environment for the maintenance tooling.
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+
+# Secrets. Never commit credentials, even in an example file that "looks safe".
+.env
+.env.*
+!.env.example
+
+# --- product runtime ---
+node_modules/
+skills/dashi-ppt/project/node_modules/
+output/
+skills/dashi-ppt/project/output/
+uploads/
+# Written by the generator on every scaffold/render/export run.
+workflow-telemetry.json
+skills/dashi-ppt/project/workflow-telemetry.json
+screens/
+screenshots/
+shots/
+scratch/
+
+# --- editor / OS ---
+.DS_Store
+Thumbs.db
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.idea/
+.vscode/

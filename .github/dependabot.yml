@@ -1,0 +1,43 @@
+version: 2
+updates:
+  # Fork maintenance tooling. This fork owns these declarations outright.
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "Asia/Taipei"
+    open-pull-requests-limit: 5
+    labels: ["dependencies", "python"]
+    groups:
+      development-dependencies:
+        dependency-type: "development"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "Asia/Taipei"
+    open-pull-requests-limit: 5
+    labels: ["dependencies", "github-actions"]
+    groups:
+      github-actions:
+        patterns: ["*"]
+
+  # The deck generator's lockfile is upstream product state; this fork tracks it
+  # rather than steering it. `open-pull-requests-limit: 0` turns off routine
+  # version-bump pull requests while leaving GitHub's security updates on, so a
+  # vulnerable transitive dependency still surfaces here instead of waiting for
+  # the next upstream release.
+  - package-ecosystem: "npm"
+    directory: "/skills/dashi-ppt/project"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "Asia/Taipei"
+    open-pull-requests-limit: 0
+    labels: ["dependencies", "javascript", "upstream-product"]
