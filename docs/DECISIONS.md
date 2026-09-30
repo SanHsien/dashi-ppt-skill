@@ -5,6 +5,31 @@
 
 ---
 
+## 2026-09-30 — D-13 上游三個發版 commit（v0.4.12–v0.4.14）：審查、暫不移植
+
+**範圍**：3 個 commit（`31581dc` v0.4.12、`f595ea6` v0.4.13、`21dc7e5` v0.4.14）、0 個新 PR（水位 #36）、
+0 個新 issue（水位 #43）。全部是上游的「Publish skill」整包發版，不是可單獨挑選的修正。
+
+**證據**：`git diff 7cb2334 upstream/main --stat` 為 122 檔、+5333/-12384（v0.4.12 單一 commit 119 檔，
+含重新產生的 `dist/theme-runtime`）；v0.4.13 只有 `write-safe-props.mjs` 一處邏輯（結構投影 slide 不寫回
+props，7 檔含版號）。整包 `git apply --check` 在 `template-swiss.html` 與 `start-preview-server.mjs` 失敗：
+這兩個檔案本 fork 已因 D-12（CodeQL 產品樹安全修補）分歧，硬套等於自行改寫。
+
+**決定**：
+
+| 項目 | 判斷 | 理由 |
+| --- | --- | --- |
+| v0.4.12 / v0.4.14（重新產生的發版包） | adoption pending: 整包 122 檔、與 D-12 的分歧檔衝突，本機只能跑離線 gate，無法驗證匯出引擎與主題行為 | 維持 D-02（產品樹不動）；D-11 安全例外不適用（沒有安全性內容） |
+| v0.4.13 `write-safe-props.mjs` | adoption pending: 單檔小修，但依賴 v0.4.12 的 `projection.structure` 結構 | 該欄位在本 fork 產品樹不存在，單獨移植沒有意義 |
+| 版號、marketplace、README 字串 | not-applicable | 屬上游發版識別 |
+
+**觸發條件**：維護者決定把產品樹整體對齊上游新版（重新以上游發版為基底，再重放 D-12 修補），或上游
+新版含安全性修正時，再一次移植並跑 `pwsh -NoProfile -File tools\dev_check.ps1`。
+
+**後果**：baseline 推進到 `21dc7e5`，代表已審查，不代表已合併。
+
+---
+
 ## 2026-09-06 — D-12 CodeQL 產品樹安全修補
 
 **決定**：套用 D-11 的安全性例外，修正 CodeQL 在產品樹確認的四組可信資料流：
