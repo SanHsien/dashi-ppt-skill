@@ -67,6 +67,7 @@ npm --prefix <project 目錄> run export:pdf  -- <PPT 輸出目錄>/ppt
 | [`tools/dev_check.ps1`](tools/dev_check.ps1) | Windows 本機一鍵 gate（compileall／ruff／pytest／skill 驗證／`node --check`／連結檢查） |
 | [`tools/check_upstream_updates.py`](tools/check_upstream_updates.py) | 上游 commit／PR／issue 三面向水位檢查 |
 | [`tools/check_dependency_freshness.py`](tools/check_dependency_freshness.py) | 依賴新鮮度雙來源比對：Python 工具對 PyPI、釘住的 GitHub Actions 對 Releases |
+| `inspect:geometry` / 幾何 Hit-Test | 以 DOM Bounding Box & AABB 碰撞量測取代昂貴 Vision 截圖，< 100 Tokens 輸出像素級溢出與重疊自癒報告，網頁按 G 鍵切換標註 |
 | `.github/workflows/` | CI（Ubuntu 3.9–3.14 + Windows）、CodeQL、上游檢查、依賴新鮮度 |
 | [`docs/`](docs/) | [DEVELOPMENT](docs/DEVELOPMENT.md)、[UPSTREAM](docs/UPSTREAM.md)、[DECISIONS](docs/DECISIONS.md)、[SKILL-SPEC](docs/SKILL-SPEC.md) |
 

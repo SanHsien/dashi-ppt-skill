@@ -29,6 +29,7 @@
 | `.github/workflows/codeql.yml`、`dependency-freshness.yml` | 安全掃描與依賴新鮮度 |
 | `.cursor/rules/no-upstream-pr.mdc` | fork 的 PR 邊界機器層 |
 | `docs/DECISIONS.md`、`docs/UPSTREAM.md`、`docs/DEVELOPMENT.md`、`docs/SKILL-SPEC.md` | fork 維護文件 |
+| `幾何 Hit-Test 量測 (inspect:geometry)` | 以 DOM Bounding Box & AABB 碰撞量測取代昂貴多模態截圖，將跑版檢測壓至 < 100 Tokens，網頁預覽按 G 鍵切換標註 |
 | `REVIEW.md` | 風險快照，不是每個一般 bug 的流水帳 |
 
 產品 `skills/`、`npm-dist/`、`.claude-plugin/` 以上游為準，除非有已記錄的 fork 修正。

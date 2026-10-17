@@ -64,6 +64,7 @@ Requirements: Node.js 20+ and npm; exporting PPTX / PDF requires Chrome / Chromi
 - **A console on every page**: sliders, toggles, dropdowns — switch layouts, tune module counts, change palettes, shift the page's emphasis
 - **Editable text**: click any text to edit in place
 - **Media replacement**: click or drag to fill media slots; text-only source material automatically reserves image placeholders
+- **DOM Hit-Test geometry QA (< 100 tokens)**: replace expensive multimodal screenshots with local DOM bounding box measurements. Get exact overlap and overflow metrics in < 100 tokens, with interactive visual overlay via keyboard shortcut G
 - **One-click export**: offline HTML bundle / PDF / genuinely editable PPTX
 
 ## Good Fit / Not a Fit
