@@ -3,7 +3,7 @@
   "branch": "main",
   "reviewed_through": "21dc7e5fc8c3a0d7f6a94948153dd1ee954f4e64",
   "reviewed_date": "2026-10-17",
-  "notes": "Fork overlay established at upstream 7cb2334 (Publish skill v0.4.11, 2026-07-30). 2026-09-30：審查至 21dc7e5（v0.4.14）。2026-10-17：無新 commit 與 PR，審查 issue #44（npm 發布版本狀態），判定不適用，見 docs/DECISIONS.md D-14。",
+  "notes": "Fork overlay established at upstream 7cb2334 (Publish skill v0.4.11, 2026-07-30). 2026-09-30：審查至 21dc7e5（v0.4.14）。2026-10-17：採納 PR #34 Windows 執行修復與 /api/list-decks 介面，審查 issue #44，整合幾何跑版檢測，升版至 v0.5.0，見 docs/DECISIONS.md D-14。",
   "reviewed_pr_through": 36,
   "reviewed_issue_through": 44
 }

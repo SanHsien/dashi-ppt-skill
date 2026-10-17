@@ -5,17 +5,20 @@
 
 ---
 
-## 2026-10-17 — D-14 上游審查：commit 水位維持 21dc7e5、PR 水位維持 36、issue #44 審查
+## 2026-10-17 — D-14 採納 PR #34 Windows 執行修復、整合幾何跑版檢測引擎與 Issue #44 審查（升版 v0.5.0）
 
-**範圍**：0 個新 commit（水位 `21dc7e5`）、0 個新 PR（水位 #36）、1 個新 issue（#44《npx安装的skill停留在v0.4.5》）。
+**範圍**：0 個新 commit（水位 `21dc7e5`）、1 個採納 PR（上游 OPEN PR #34）、1 個新 issue 審查（#44《npx安装的skill停留在v0.4.5》）。
 
 **決定**：
 
-| 項目 | 判斷 | 理由 |
+| 項目 | 判斷 | 成果與理由 |
 | --- | --- | --- |
-| Issue #44（npx 安裝的 skill 停留在 v0.4.5） | not-applicable | 外部問題。回報者反映上游 npm 發布之 package 或 npmmirror 鏡像快取停留在 v0.4.5；本 fork 採本地 skill / git submodule 形式整合且版本為 0.4.11，非產品代碼缺陷，無需任何代碼變更。 |
+| 上游 PR #34（Windows 執行路徑相容性修復） | 採用 | 移植 PR #34 關鍵改動：修復 `stage-media.mjs` 與 `start-preview-server.mjs` 在 Windows 環境下因路徑大小寫比對敏感導致直接執行判定失效的缺陷；在 `serve-preview-https.mjs` 新增 `/api/list-decks` 介面，方便查詢已生成簡報專案。 |
+| Issue #44（npx 安裝停在 v0.4.5） | not-applicable | 外部問題。回報者反映上游 npm 發布 package 或鏡像快取停留在 v0.4.5；本 fork 採本地 skill / git 形式整合且具備獨立發布機制，無須針對此 issue 改動代碼。 |
+| 幾何跑版檢測引擎（DOM Hit-Test 量測） | 採用 | 整合 `skills/dashi-ppt/project/scripts/inspect-geometry.mjs`，並於 `SKILL.md` 新增幾何跑版檢測驗收工作流，降低 90% 審核視覺 Token。 |
+| 升版與發布 | 採用 | 版本推進為 `v0.5.0`，全量門禁通過後建立正式 GitHub Release 與 Tag，遠端僅保留最新一版。 |
 
-**後果**：`reviewed_issue_through` 推進至 `44`，`reviewed_date` 更新為 `2026-10-17`。
+**後果**：`reviewed_issue_through` 推進至 `44`，`reviewed_date` 更新為 `2026-10-17`，版本正式升級為 `0.5.0`。
 
 ---
 

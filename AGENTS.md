@@ -60,6 +60,8 @@ Baseline 代表「已審查」，不代表「全部已合併」。
 **四個面向都要看，不是只看 commit**：commit、open PR、open issue、上游分支。每個面向各記一個水位（`reviewed_through`／`reviewed_pr_through`／`reviewed_issue_through`，分支記 head SHA），下次只看更大的編號或變動過的 head。
 
 **判準是證據，不是分類。** 結論要寫得可查證：diff 動了哪些檔案、本 fork 對應的檔案實際長什麼樣，以及**觸發條件**。
+- **上游更新檢查與同步**：不可僅以「採用待辦（adoption pending）」防守了事，審查後應積極將有價值的修復與相容性改進實作進 repo，並完成全量驗收。
+- **PRs 與 Issues 處理**：必須逐一進行實質評估、處理與記錄，不可只報告流水號。
 
 ## 驗證
 

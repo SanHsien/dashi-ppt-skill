@@ -44,7 +44,8 @@ const legacyLockDir = process.env.DASHI_PPT_PREVIEW_LOCK_DIR
   : path.join(os.tmpdir(), 'dashi-ppt-preview-ports');
 const incompleteStartLockStaleMs = 1000;
 
-const isDirectRun = Boolean(process.argv[1]) && path.resolve(process.argv[1]) === path.resolve(import.meta.filename);
+const isDirectRun = Boolean(process.argv[1])
+  && path.resolve(process.argv[1]).toLowerCase() === path.resolve(import.meta.filename).toLowerCase();
 
 if (isDirectRun) {
   process.on('uncaughtException', error => exitWithError(error));
