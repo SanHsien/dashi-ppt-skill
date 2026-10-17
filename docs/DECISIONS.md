@@ -5,6 +5,20 @@
 
 ---
 
+## 2026-10-17 — D-14 上游審查：commit 水位維持 21dc7e5、PR 水位維持 36、issue #44 審查
+
+**範圍**：0 個新 commit（水位 `21dc7e5`）、0 個新 PR（水位 #36）、1 個新 issue（#44《npx安装的skill停留在v0.4.5》）。
+
+**決定**：
+
+| 項目 | 判斷 | 理由 |
+| --- | --- | --- |
+| Issue #44（npx 安裝的 skill 停留在 v0.4.5） | not-applicable | 外部問題。回報者反映上游 npm 發布之 package 或 npmmirror 鏡像快取停留在 v0.4.5；本 fork 採本地 skill / git submodule 形式整合且版本為 0.4.11，非產品代碼缺陷，無需任何代碼變更。 |
+
+**後果**：`reviewed_issue_through` 推進至 `44`，`reviewed_date` 更新為 `2026-10-17`。
+
+---
+
 ## 2026-09-30 — D-13 上游三個發版 commit（v0.4.12–v0.4.14）：審查、暫不移植
 
 **範圍**：3 個 commit（`31581dc` v0.4.12、`f595ea6` v0.4.13、`21dc7e5` v0.4.14）、0 個新 PR（水位 #36）、
