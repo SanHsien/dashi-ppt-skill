@@ -21,6 +21,7 @@
     "validate:swiss": "node scripts/validate-swiss-deck.mjs",
     "validate:goal-copy": "node scripts/validate-goal-copy.mjs",
     "validate:four-variant-quality": "node scripts/validate-four-variant-quality.mjs",
+    "inspect:geometry": "node scripts/inspect-geometry.mjs",
     "export:pptx": "node scripts/export-pptx.mjs",
     "export:pdf": "node scripts/export-pptx.mjs --pdf"
   },
