@@ -19,6 +19,7 @@ ROOT = Path(__file__).resolve().parent.parent
 LINK_PATTERN = re.compile(r"\[[^\]]*\]\(([^)]+)\)")
 IMAGE_PATTERN = re.compile(r"!\[[^\]]*\]\(([^)]+)\)")
 HTML_SRC_PATTERN = re.compile(r"""(?is)<img[^>]+src=["']([^"']+)["']""")
+INLINE_CODE_PATTERN = re.compile(r"`[^`\n]*`")
 SKIP_PREFIXES = ("http://", "https://", "mailto:", "tel:", "#")
 
 SKIP_NAMES = {
@@ -41,8 +42,33 @@ def iter_documents() -> list[Path]:
     )
 
 
+def _strip_code(text: str) -> str:
+    """Drop fenced blocks and inline code spans: links shown as examples are not links."""
+    kept: list[str] = []
+    fence = ""
+    for line in text.splitlines():
+        marker = line.lstrip()[:3]
+        if fence:
+            if marker == fence:
+                fence = ""
+            continue
+        if marker in ("```", "~~~"):
+            fence = marker
+            continue
+        kept.append(INLINE_CODE_PATTERN.sub("", line))
+    return "\n".join(kept)
+
+
+def _link_destination(target: str) -> str:
+    """`path "title"` -> `path`; `<a path> "title"` -> `a path`."""
+    target = target.strip()
+    if target.startswith("<") and ">" in target:
+        return target[1:target.index(">")]
+    return target.split(None, 1)[0] if target else target
+
+
 def _missing_relative(path: Path, target: str) -> str | None:
-    target = target.strip().strip("<>")
+    target = _link_destination(target)
     if not target or target.startswith(SKIP_PREFIXES):
         return None
     file_part = unquote(target.split("#", 1)[0])
@@ -62,7 +88,7 @@ def _missing_relative(path: Path, target: str) -> str | None:
 
 def check_document(path: Path) -> list[str]:
     problems: list[str] = []
-    text = path.read_text(encoding="utf-8")
+    text = _strip_code(path.read_text(encoding="utf-8"))
     for pattern in (LINK_PATTERN, IMAGE_PATTERN, HTML_SRC_PATTERN):
         for match in pattern.finditer(text):
             missing = _missing_relative(path, match.group(1))
