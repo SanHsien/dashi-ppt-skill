@@ -11,6 +11,15 @@ Per-commit adopt/skip reasoning lives in [`docs/DECISIONS.md`](docs/DECISIONS.md
 
 ---
 
+## 2026-10-26 (deep scan of the maintenance tools)
+
+### Fixed
+
+- **The freshness check no longer reads the next line's comment.** `_USES_RE` joined `#` with `\s*`, which crosses a newline: a comment line (or `# freshness-hold:`) right after `uses: actions/checkout@v4` was taken as that action's version comment or hold. It now matches horizontal whitespace only.
+- **Upstream check no longer crashes where `gh` is not installed.** `collect_new_tickets` documents "None when `gh` cannot answer", but a missing executable raised `FileNotFoundError` and a traceback. It now returns `None` (the report says "Not checked").
+- **`validate_skills.py` frontmatter parsing**: a UTF-8 BOM (common from Windows editors) is no longer reported as missing frontmatter; a `---` inside a value (an em-dash stand-in in a description) no longer ends the frontmatter early and hides the fields after it; `description: >` / `|` block scalars read the indented text instead of treating `>` as the description.
+- **`check_links.py`**: the title in `[text](path "title")` is no longer glued onto the path (false "missing file"); example links inside code fences and inline code are not checked.
+
 ## 2026-09-09 (dependency freshness: Actions too)
 
 ### Fixed

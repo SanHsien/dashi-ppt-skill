@@ -10,6 +10,15 @@
 
 ---
 
+## 2026-10-26（維護工具深度掃描）
+
+### 修復
+
+- **新鮮度檢查不再讀到下一行的註解。** `_USES_RE` 用 `\s*` 接 `#`，會跨過換行：`uses: actions/checkout@v4` 後面若緊接一行 `# …`（或 `# freshness-hold:`），那行就被當成這個 action 的版本註解或保留標記。改成只吃行內空白。
+- **沒有 `gh` 的機器不再讓上游檢查崩潰。** `collect_new_tickets` 文件寫明「`gh` 答不了就回 `None`」，但 `gh` 不存在時 `subprocess.run` 丟 `FileNotFoundError`、直接 traceback。現在照文件回 `None`（報告標「Not checked」）。
+- **`validate_skills.py` 的 frontmatter 解析**：UTF-8 BOM（Windows 編輯器常加）不再被誤判成「缺 frontmatter」；值裡的 `---`（例如描述裡當破折號用）不再提早結束 frontmatter 而漏檢後面的欄位；`description: >`／`|` 區塊純量改讀縮排內文，不再把 `>` 當成描述。
+- **`check_links.py`**：`[文字](路徑 "標題")` 的標題不再併進路徑而誤報缺檔；程式碼區塊與行內程式碼裡的範例連結不再檢查。
+
 ## 2026-09-09（依賴新鮮度：加查 Actions）
 
 ### 修復
