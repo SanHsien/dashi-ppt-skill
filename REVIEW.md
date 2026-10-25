@@ -1,16 +1,16 @@
 # Repository review（Windows-first）
 
-- Review date: 2026-09-04
+- Review date: 2026-09-04（2026-10-25 更新狀態）
 - Fork point: 上游 `7cb23347f91cda1a5519eafc8c040704e389535a`（`Publish skill v0.4.11`，2026-07-30）
-- Upstream watermarks: commit `7cb2334`（fork point 即上游 head，commit 軸 0 筆）；`reviewed_pr_through` = **36**、`reviewed_issue_through` = **43**（首輪 7 PR + 35 issue 已 triage，零採用）
+- Upstream watermarks（以 `tools/upstream_baseline.json` 為準）: commit `21dc7e5`（v0.4.14，已審查、整包未合併，見 D-13）；`reviewed_pr_through` = **36**、`reviewed_issue_through` = **44**（2026-10-17 審查，D-14）
 - Primary environment: Windows 11、PowerShell、Python 3.14（本機）、CI Ubuntu 3.9–3.14 + Windows 3.14、Node.js 26（本機）／22（CI）
-- Status: 維護骨架可用；產品 `skills/`、`npm-dist/`、`.claude-plugin/` 未改寫，**唯一例外是維護者核可的 esbuild 安全性升級**（lockfile，見 R-07）
+- Status: 維護骨架可用；產品樹原則上不動（D-02），**例外**：維護者核可的安全性修補（R-07 esbuild、R-08 image-size、D-12 CodeQL 四組）與 D-14 採納的上游 PR #34／幾何檢測（v0.5.0）
 
 ## 結論
 
 這個 fork 適合作為 Windows 本機安裝、並追蹤上游 Dashi PPT skill 的維護線。產品是一個 Agent Skill 加一套本機 Node 生成器（12 套主題、1,020 個版式、瀏覽器內編輯、PPTX / PDF 匯出）；本線**沒有**接手產品開發。
 
-本輪建立 overlay 時列出的 R-01～R-05：R-01～R-03 已處理，R-04、R-05 是刻意不修。
+本輪建立 overlay 時列出的 R-01～R-05：R-01～R-03 已處理，R-04、R-05 是刻意不修。倉庫於 2026-09-27 以乾淨歷史重建，R-01～R-03、R-07 的原始修復 commit 已併入 `69df841`（release: initialize clean repository v1.0.0）；之後的修復另列 commit。
 
 ## 已處理 findings
 
@@ -21,12 +21,12 @@
 | R-03 | P3 | 上游 `.github/ISSUE_TEMPLATE/config.yml` 只有 `blank_issues_enabled: true`，訪客會把產品缺陷開到這個 fork。 | 加 contact links：本 fork 的 `CONTRIBUTING.md`、上游 issues、安全性通報入口。`test_issue_contact_links_point_at_this_fork` 鎖住。**更正（2026-09-11）**：本 repo 的 Issues 功能是關閉的（fork 繼承的預設，維護者其他 fork 亦同），所以這些 contact links 目前不會顯示給訪客；保留是為了 Issues 若開啟時導流正確，實際效果不應宣稱為「已擋住誤開」。 |
 
 | R-07 | P1 | **esbuild GHSA-g7r4-m6w7-qqqr**（low，development 範圍）：`>= 0.27.3, < 0.28.1` 的開發伺服器在 **Windows 上**可被讀取任意檔案。本 fork 正是 Windows-first，且預覽服務**預設在同區網可存取**——CVSS 給 low，但這條路徑在本線的實際部署形態下比評分更值得修。 | **已修（維護者 2026-09-04 核可的 D-02 安全性例外）**：lockfile 內 esbuild 0.28.0 → **0.28.2**。`package.json` 的 `^0.28.0` 未動（新版本本來就在範圍內），語意 diff 確認只有 27 個 esbuild 條目變動。已用完整生成流程實測，見「本輪實證」。`tests/test_docs.py::test_security_exception_floor_still_holds` 釘住 `>= 0.28.1`，上游同步若把 lockfile 蓋回去會讓 CI 紅。 |
+| R-08 | P1 | **`image-size` 兩筆 high**（GHSA-w3rx-r6r6-pgpr、GHSA-5p2g-fcmc-qvqq：ICNS / JXL / HEIF 解析器可被畸形圖片打進無窮迴圈）。屬 **runtime** 範圍，由 `pptxgenjs@4.0.1`（`image-size: ^1.2.1`）帶進來，匯出 PPTX 時用來量圖片尺寸。 | **已修（2026-09-26，PR #3，merge `04bab4f`；進入乾淨歷史後為 `69df841`）**：`package.json` 加 `overrides: {"image-size": "^2.0.3"}`，lockfile 解析為 2.0.4（修補版）。原先寫「無可升級版本」是 2026-09-04 的狀態，之後 image-size 出了修補版。Dependabot alert #4、#5 皆 `fixed`，目前 open alerts = 0。2026-10-25 補註：SECURITY.md 與 D-11 的「無法修」敘述同步更正。 |
 
 ## 上游持有、本線不修
 
 | ID | 嚴重度 | Finding | 處理 |
 |---|---|---|---|
-| R-08 | P1 | **`image-size` 兩筆 high 無法修**（GHSA-w3rx-r6r6-pgpr、GHSA-5p2g-fcmc-qvqq：ICNS / JXL / HEIF 解析器可被畸形圖片打進無窮迴圈）。屬 **runtime** 範圍，由 `pptxgenjs@4.0.1` 帶進來（`image-size: ^1.2.1`），匯出 PPTX 時用來量圖片尺寸——輸入正是使用者自己放進 deck 的圖。 | **無可升級版本。** 兩份 advisory 的 `first_patched_version` 都是空的，影響範圍 `<= 2.0.2`，而 npm 上最新就是 2.0.2；`pptxgenjs` 最新版（4.0.1，即本線用的版本）仍相依 `image-size ^1.2.1`。`npm audit fix --force` 提出的「修法」是把 pptxgenjs 降到 **1.1.5**，那會直接毀掉匯出引擎——**拒絕**。實際曝險：本機 DoS（匯出時卡住），觸發條件是使用者把畸形 ICNS/JXL/HEIF 放進自己的 deck，沒有遠端攻擊面。已寫進 [`SECURITY.md`](SECURITY.md) 讓使用者知道；上游或 image-size 出修正版即採用。 |
 | R-06 | P2 | **`render:themes` script 不存在，但預覽流程會呼叫它。** `skills/dashi-ppt/project/scripts/preview-freshness.mjs:48` 在主題預覽過期時執行 `npm run render:themes`，而 `skills/dashi-ppt/project/package.json` 的 `scripts` 沒有這個項目——主題預覽一旦過期，預覽流程必然中斷。對應上游 issue #29。 | **不在本 fork 修**：正確修法（補 script 還是改呼叫端）由上游決定，本線先修會在下次同步對撞。已記在 [`docs/DECISIONS.md`](docs/DECISIONS.md) D-08，並登記在上游 issue 水位內。 |
 
 ## 刻意不修
@@ -84,7 +84,7 @@ npm run export:pptx  -- <ppt> <out>.pptx          → 3 slide(s), 48 editable te
 | 渲染 | 3 slides, `index.html` 498,463 bytes | 3 slides, **498,463 bytes** |
 | `index.html` sha256 | `38f6e63db2f57b55…` | **`38f6e63db2f57b55…`（相同）** |
 | 匯出 PPTX | 2,335,058 bytes, 48 可編輯文字物件, 15 warnings | **2,335,058 bytes, 48, 15（相同）** |
-| `npm audit` | esbuild + image-size | **只剩 image-size**（見 R-08） |
+| `npm audit` | esbuild + image-size | **只剩 image-size**（見 R-08；其後 2026-09-26 已修） |
 
 產物逐位元相同，所以這次升級是行為中性的，不是「跑得起來就算過」。
 
@@ -98,7 +98,7 @@ npm 自己不同意，比留著更糟，所以接受。
 `4660c56` 為止：CI、CodeQL、Upstream check、Dependency freshness 全部 success
 （首推 `47d1daf` 的 Upstream check 是紅的，那是水位還沒推進的預期狀態，`422f889` 起轉綠）。
 安全性提交 `452fb97`：CI、CodeQL success；GitHub 上 esbuild 的 Dependabot alert（GHSA-g7r4-m6w7-qqqr）
-隨之自動轉為 `fixed`，只剩 R-08 的兩筆 `image-size`。其後的 `e0f2b10`（依賴新鮮度加查 Actions）與
+隨之自動轉為 `fixed`，只剩 R-08 的兩筆 `image-size`（其後 2026-09-26 已由 PR #3 修掉）。其後的 `e0f2b10`（依賴新鮮度加查 Actions）與
 `73decff`（Actions 查詢帶 token）CI、CodeQL、Dependency freshness 皆 success。
 
 ## 已檢查、不列為 finding
@@ -114,8 +114,8 @@ npm 自己不同意，比留著更糟，所以接受。
 
 - 產品流程只跑過**單主題、3 頁、`--layout-variants 1`** 這一條：沒有跑滿 12 套主題、沒有多變體（v2/v4）路徑、沒有匯出 PDF、沒有起預覽伺服器、沒有圖片／影片槽與 `media:stage`。
 - **沒有**在 Claude Code / Codex / Cursor 實際安裝並觸發這個 skill。
-- **沒有**實測 image-size 的兩個 DoS 是否真能被觸發（R-08 的曝險敘述是依相依關係與 advisory 推得，不是實驗結果）。
-- **沒有**逐筆審查上游自 fork point 之後的 commit / PR / issue——水位刻意留在 0，等第一次 `upstream-check` 排程結果再處理。
+- **沒有**實測 image-size 的兩個 DoS 是否真能被觸發（R-08 已改用修補版，此項不再適用）。
+- 上游審查已逐筆進行並記錄（D-07～D-09、D-13、D-14）；水位見檔頭。v0.4.12–v0.4.14 整包刻意未合併（D-13）。
 - **沒有**對上游開任何 PR、push 或 release。
 - `dev_check.ps1` **不含** Bandit；CodeQL 是獨立 workflow。
-- **不宣稱**本 fork 有自己的 GitHub Release；產品版本仍跟隨上游（目前 `0.4.11`）。
+- 本 fork 自 2026-10-17 起有自己的 GitHub Release（`v0.5.0`，D-14）；上游最新為 `0.4.14`。

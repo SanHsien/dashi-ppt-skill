@@ -13,16 +13,12 @@
 回報請包含影響範圍、重現步驟、受影響版本與最小必要證據。請勿附上真實 API key、cookie
 或客戶簡報全文。
 
-## 已知且目前無法修的問題
+## 已修的已知問題
 
-**`image-size` 的兩個 DoS（GHSA-w3rx-r6r6-pgpr、GHSA-5p2g-fcmc-qvqq，high）**：畸形的
-ICNS / JXL / HEIF 圖片會讓解析器進入無窮迴圈。它由 `pptxgenjs` 帶進來，在**匯出 PPTX 量圖片尺寸**時
-用到，輸入是你自己放進 deck 的圖片。
-
-- **目前沒有修正版本**：advisory 影響範圍是 `<= 2.0.2`，而 npm 上最新就是 2.0.2；`pptxgenjs` 最新版仍相依它。
-- **實際影響**：本機 DoS——匯出時卡住，沒有遠端攻擊面，不涉及資料外洩。
-- **能做的事**：來源不明的圖片先轉存成 PNG/JPEG 再放進 deck；匯出卡住就中斷程序。
-- 上游或 `image-size` 出修正版後本 fork 會採用。追蹤紀錄見 [`REVIEW.md`](REVIEW.md) R-08。
+**`image-size` 的兩個 DoS（GHSA-w3rx-r6r6-pgpr、GHSA-5p2g-fcmc-qvqq，high）**：畸形的 ICNS / JXL / HEIF
+圖片會讓舊版解析器進入無窮迴圈。已透過 `package.json` 的 `overrides` 將 `image-size` 固定在 `^2.0.3`
+（目前解析為 2.0.4，修補版）；Dependabot 對應警示已關閉。仍建議來源不明的圖片先轉存成 PNG/JPEG。
+追蹤紀錄見 [`REVIEW.md`](REVIEW.md) R-08。
 
 ## 特別注意
 

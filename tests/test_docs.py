@@ -84,6 +84,18 @@ def test_security_exception_floor_still_holds() -> None:
     assert parts >= (0, 28, 1), f"esbuild {version} is below the security floor"
 
 
+def test_image_size_security_floor_still_holds() -> None:
+    """GHSA-w3rx-r6r6-pgpr / GHSA-5p2g-fcmc-qvqq are fixed in image-size >= 2.0.3."""
+    lock = json.loads(
+        (ROOT / "skills" / "dashi-ppt" / "project" / "package-lock.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    version = lock["packages"]["node_modules/image-size"]["version"]
+    parts = tuple(int(part) for part in version.split(".")[:3])
+    assert parts >= (2, 0, 3), f"image-size {version} is below the security floor"
+
+
 def test_maintainer_markdown_links_resolve() -> None:
     failures = 0
     for path in check_links.iter_documents():

@@ -132,6 +132,8 @@ Fork point 就是上游 `main` 的 head，所以 **commit 軸 0 筆**。PR 與 i
 `<= 2.0.2` 而 npm 上最新就是 2.0.2、`pptxgenjs` 最新版仍相依它。`npm audit fix --force` 的建議是
 把 pptxgenjs 降到 1.1.5，等於毀掉匯出引擎，拒絕。改為寫進 `SECURITY.md` 讓使用者知道，見 R-08。
 
+> **後續（2026-10-25 更正）**：image-size 其後出了修補版，已於 2026-09-26（PR #3）以 `overrides` 固定 `^2.0.3` 修掉，上段「無法修」只是 2026-09-04 當時的狀態。
+
 順帶接受的差異：npm 清掉了 lockfile 裡 `node_modules/typescript` 這個沒有任何套件宣告的孤兒條目。
 手動塞回去每次 `npm install` 都會被再清一次——npm 自己不同意的 lockfile 比多一行 diff 更糟。
 
