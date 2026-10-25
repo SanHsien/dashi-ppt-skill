@@ -42,9 +42,12 @@ _RELEASE_RE = re.compile(r"^[0-9]+(?:\.[0-9]+)*")
 # The path can carry a subdirectory -- `github/codeql-action/init` is one action
 # in a repo that publishes several. Matching only `owner/repo` silently skipped
 # every one of those, which is how a CodeQL pin ages without anything noticing.
+# Horizontal whitespace only: `\s` also matches a newline, which let the optional
+# comment group reach across the line break and adopt the *next* line's comment
+# (or its `freshness-hold:`) as this action's declared version.
 _USES_RE = re.compile(
-    r"^\s*(?:-\s*)?uses:\s*([\w.\-]+/[\w.\-]+(?:/[\w.\-]+)*)@([0-9a-fA-F]{40}|\S+)"
-    r"(?:\s*#\s*(.*))?\s*$",
+    r"^[ \t]*(?:-[ \t]*)?uses:[ \t]*([\w.\-]+/[\w.\-]+(?:/[\w.\-]+)*)@([0-9a-fA-F]{40}|\S+)"
+    r"(?:[ \t]*#[ \t]*([^\r\n]*))?[ \t\r]*$",
     re.MULTILINE,
 )
 HOLD_MARKER = "freshness-hold:"
