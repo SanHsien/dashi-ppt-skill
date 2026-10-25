@@ -27,24 +27,46 @@ def _reconfigure_stdio() -> None:
             pass
 
 
+_FENCE_RE = re.compile(r"^---[ \t]*$")
+_BLOCK_SCALAR_RE = re.compile(r"^[>|][+-]?$")
+
+
 def extract_frontmatter(text: str) -> str | None:
-    if not text.startswith("---"):
+    """Text between the opening `---` line and the next line that is only `---`.
+
+    The delimiter is matched by line: a `---` inside a value (an em-dash stand-in
+    in a description) does not end the frontmatter.
+    """
+    lines = text.lstrip("﻿").splitlines()
+    if not lines or not _FENCE_RE.match(lines[0]):
         return None
-    parts = text.split("---", 2)
-    if len(parts) < 3:
-        return None
-    return parts[1]
+    for index in range(1, len(lines)):
+        if _FENCE_RE.match(lines[index]):
+            return "\n".join(lines[1:index])
+    return None
 
 
 def field_value(frontmatter: str, name: str) -> str:
     pattern = re.compile(
-        rf"^{re.escape(name)}:\s*(?:\"([^\"]*)\"|'([^']*)'|(.*))\s*$",
+        rf"^{re.escape(name)}:[ \t]*(?:\"([^\"]*)\"|'([^']*)'|(.*))[ \t]*$",
         re.M,
     )
     match = pattern.search(frontmatter)
     if not match:
         return ""
-    return next(group for group in match.groups() if group is not None).strip()
+    value = next(group for group in match.groups() if group is not None).strip()
+    if match.group(3) is not None and _BLOCK_SCALAR_RE.match(value):
+        # `description: >` / `|`: the value is the indented lines that follow,
+        # not the indicator character.
+        folded: list[str] = []
+        for line in frontmatter[match.end():].splitlines():
+            if line.strip() and not line[:1].isspace():
+                break
+            folded.append(line.strip())
+        value = (" " if value.startswith(">") else "\n").join(
+            part for part in folded if part
+        )
+    return value
 
 
 def audit_skill(skill_dir: Path) -> tuple[list[str], list[str]]:
@@ -55,7 +77,7 @@ def audit_skill(skill_dir: Path) -> tuple[list[str], list[str]]:
     if not skill_file.is_file():
         return ["Missing SKILL.md"], warnings
 
-    text = skill_file.read_text(encoding="utf-8")
+    text = skill_file.read_text(encoding="utf-8-sig")
     frontmatter = extract_frontmatter(text)
     if frontmatter is None or not frontmatter.strip():
         return ["Missing YAML frontmatter (---)"], warnings
