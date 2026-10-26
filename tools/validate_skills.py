@@ -55,15 +55,15 @@ def field_value(frontmatter: str, name: str) -> str:
     if not match:
         return ""
     value = next(group for group in match.groups() if group is not None).strip()
-    if match.group(3) is not None and _BLOCK_SCALAR_RE.match(value):
-        # `description: >` / `|`: the value is the indented lines that follow,
-        # not the indicator character.
+    if match.group(3) is not None and (not value or _BLOCK_SCALAR_RE.match(value)):
+        # `description: >` / `|`, or a bare `description:`: the value is the
+        # indented lines that follow, not the indicator character.
         folded: list[str] = []
         for line in frontmatter[match.end():].splitlines():
             if line.strip() and not line[:1].isspace():
                 break
             folded.append(line.strip())
-        value = (" " if value.startswith(">") else "\n").join(
+        value = ("\n" if value.startswith("|") else " ").join(
             part for part in folded if part
         )
     return value

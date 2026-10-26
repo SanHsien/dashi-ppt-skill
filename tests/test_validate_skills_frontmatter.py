@@ -43,3 +43,10 @@ def test_block_scalar_description_is_read_as_its_text() -> None:
     assert validate_skills.field_value(frontmatter, "description") == (
         "Use when building decks and slides for the user."
     )
+
+
+def test_plain_description_on_the_following_indented_lines_is_still_read() -> None:
+    frontmatter = validate_skills.extract_frontmatter(
+        "---\nname: dashi-ppt\ndescription:\n  Use when foo\n  and bar.\n---\n"
+    )
+    assert validate_skills.field_value(frontmatter, "description") == "Use when foo and bar."
