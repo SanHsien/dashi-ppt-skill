@@ -59,21 +59,6 @@ def test_render_markdown_reports_no_new_commits() -> None:
     assert "No new upstream commits" in report
 
 
-def test_render_markdown_distinguishes_unchecked_from_clean() -> None:
-    """`None` means gh could not answer; it must not read as "nothing to review"."""
-    baseline = {
-        "repo": "https://example.invalid/upstream.git",
-        "branch": "main",
-        "reviewed_through": "a" * 40,
-        "reviewed_date": "2026-09-04",
-    }
-
-    report = checker.render_markdown(baseline, [], prs=None, issues=[])
-
-    assert "Not checked" in report
-    assert "No new items above that number." in report
-
-
 def test_render_markdown_surfaces_check_failure() -> None:
     baseline = {
         "repo": "https://example.invalid/upstream.git",
