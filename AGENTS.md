@@ -93,3 +93,7 @@ pwsh -NoProfile -File tools\dev_check.ps1
 - 根因是機制不是粗心：`gh` 在 fork clone 的**預設 repo 就是上游**，裸跑 `gh pr create` 必然打上去。每個 clone 先跑一次 `gh repo set-default SanHsien/dashi-ppt-skill`。
 - 開 PR 仍明寫 `gh pr create --repo SanHsien/dashi-ppt-skill --base main --head <分支>`，並**讀輸出的 URL**，owner 必須是 `SanHsien`。不是就立刻 `gh pr close` 留言道歉說明，再對 origin 重開。
 - 2026-08-22 一天內兩個工作階段各誤開一個上游 PR。批次跑多個 repo 時最容易略過確認，而那正是兩次出事的場合。
+
+## 路線圖
+
+- `ROADMAP.md` 是本 repo 後續工作的單一真相源。完成或新增工作時，在同一個 commit 更新它：做完的列刪掉、新工作加進去。不要在其他文件另列待辦。
