@@ -1,11 +1,13 @@
 # 路線圖
 
 > 本 repo 後續工作的單一真相源。做完一項，就在同一個 commit 刪掉那一列；新工作只加在這裡。
-> 現況段的數字是 2026-10-29 依 `main` `9ed21194066c` 查的快照，開工前先重查 GitHub。
+> 現況段的數字是 2026-10-29 依 `main` `9ed21194066c` 查的快照，另註明日期者為較新的重查；開工前先重查 GitHub。
 
 ## 現況
 
-上游 `chuspeeism/dashi-ppt-skill`（AI Agent 的 PPT 技能）的維護 fork（public，非 GitHub fork 關係，但有上游遠端）。健康：`CI`、`CodeQL`、`Dependency freshness`、`Upstream check` 預設分支最近一次皆 success；Dependabot 與 Code scanning 告警 0 筆；open PR 0 筆；issues 已停用（未查到 issue 數，不是 0）；最近 release 為 v0.5.0（2026-10-17）。上游審查水位 `21dc7e5`／PR 36／issue 44（`tools/upstream_baseline.json`），沒有卡住的事，近期無必做項。
+上游 `chuspeeism/dashi-ppt-skill`（AI Agent 的 PPT 技能）的維護 fork（public，非 GitHub fork 關係，但有上游遠端）。2026-10-29 健康快照：`CI`、`CodeQL`、`Dependency freshness`、`Upstream check` 預設分支最近一次皆 success；Dependabot 與 Code scanning 告警 0 筆；open PR 0 筆；issues 已停用（未查到 issue 數，不是 0）；最近 release 為 v0.5.0（2026-10-17）。上游審查水位 `21dc7e5`／PR 36／issue 44（`tools/upstream_baseline.json`），該次快照沒有卡住的事，近期無必做項。
+
+2026-11-02 複查：`Dependency freshness` 的 [2026-11-01 執行](https://github.com/SanHsien/dashi-ppt-skill/actions/runs/41295066250) 因 ruff 0.17.3 超過已審版本 0.17.2 而 failure。已於暫存 venv 實測最新版 lint／測試，保留相容下限並更新 deferral（下次複審 2026-12-02）；詳細證據見 `REVIEW.md`。
 
 ## 近期：可以直接動手
 | 項目 | 為什麼 | 驗收方式 | 建議執行者 | 證據 |
@@ -15,7 +17,7 @@
 ## 中期：等條件成立再做
 | 項目 | 觸發條件 | 驗收方式 | 建議執行者 | 證據 |
 | --- | --- | --- | --- | --- |
-| 複審 ruff 基線 | 日期到 2026-11-25（`.github/dependency-deferrals.json` 的 `revisit`），或 `Dependency freshness`（每月 1 日）因此轉紅 | 決定升基線或延後：升則 ruff floor 與 `pyproject.toml` 同步、`ruff check` 與 `tools\dev_check.ps1` 綠並刪除該 deferral；延後則更新 `revisit` 與 `reason` | Claude Sonnet | `.github/dependency-deferrals.json:4-8`；接續開發報告（2026-10-25） |
+| 複審 ruff 基線 | `.github/dependency-deferrals.json` 的 `revisit` 日（2026-12-02）到期，或 Dependency freshness 因 PyPI 超過 `deferredLatest` 而提醒；`revisit` 不會自動觸發任何檢查，只靠這一列追 | 決定升基線或延後：升則 ruff floor 與 `pyproject.toml` 同步、`ruff check` 與 `tools\dev_check.ps1` 綠並刪除該 deferral；延後則更新 `revisit` 與 `reason` | Codex | `.github/dependency-deferrals.json`；`REVIEW.md` ruff 基線複審（2026-11-02） |
 | 上游新版審查（含整包對齊 v0.4.12–v0.4.14 的決定） | `Upstream check`（每週一 03:00 UTC）轉 failure，或 `git ls-remote` 上游 main 出現 `21dc7e5` 之後的 commit；failure 代表有未審項目，不是工具壞。整包對齊另需：維護者決定以上游發版為基底重放 D-12 修補，或上游新版含安全性修正 | 逐項判決寫進 `docs/DECISIONS.md`、`tools/upstream_baseline.json` 水位前進；有移植的跑 `pwsh -NoProfile -File tools\dev_check.ps1` 綠並更新 `docs/UPSTREAM.md` | Claude Opus | `docs/DECISIONS.md` D-13（觸發條件段）；`.github/workflows/upstream-check.yml:11` |
 | 補上 `render:themes` script 或改呼叫端 | 上游修好 issue #29（或維護者決定本線先分叉） | `skills/dashi-ppt/project/package.json` 有該 script 或 `preview-freshness.mjs` 不再呼叫它；主題預覽過期時流程不中斷；`REVIEW.md` R-06 回註 commit | Claude Sonnet | `docs/DECISIONS.md` D-08；`REVIEW.md` R-06；`skills/dashi-ppt/project/scripts/preview-freshness.mjs:48` |
 | 升級測試基準（pytest 9 等需要新 Python 的依賴） | CI 矩陣不再測 py3.9（`.github/workflows/ci.yml:25`）時，才取消 `requirements-dev.txt:2` 的 `freshness-hold` 標記 | pytest 下限升到 9、移除標記、`CI` 全矩陣綠、`Dependency freshness` 綠 | Codex | `.github/workflows/ci.yml:25`；`requirements-dev.txt:1-2` |

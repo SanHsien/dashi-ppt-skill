@@ -11,6 +11,12 @@ Per-commit adopt/skip reasoning lives in [`docs/DECISIONS.md`](docs/DECISIONS.md
 
 ---
 
+## 2026-11-02 (ruff baseline review)
+
+### Maintenance
+
+- Tested the latest PyPI ruff 0.17.3 and pytest 9.2.0 in a system temporary venv: `ruff check` passed and all 62 tests passed. Kept `ruff>=0.16` and the E9/F rules; updated the deferral release, rationale, and revisit date (2026-12-02), and updated the roadmap row to track the 2026-12-02 revisit.
+
 ## 2026-10-26 (deep scan of the maintenance tools)
 
 ### Fixed

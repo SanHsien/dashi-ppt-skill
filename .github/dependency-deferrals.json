@@ -2,10 +2,10 @@
   "$comment": "每月依賴檢查用：已經看過、但這次不升的決定。deferredLatest 記下當時審視的版本，PyPI 一超過它就自動恢復提醒。",
   "deferrals": {
     "ruff": {
-      "deferredLatest": "0.17.2",
-      "reviewed": "2026-10-25",
-      "revisit": "2026-11-25",
-      "reason": "maintainer linter baseline; 0.17.2 試跑 ruff check --select E9,F 全綠；floor 不動，升基線留待獨立 linter 審視"
+      "deferredLatest": "0.17.3",
+      "reviewed": "2026-11-02",
+      "revisit": "2026-12-02",
+      "reason": "保留 maintainer linter 相容下限 0.16 與既有 E9/F 規則；2026-11-02 以系統暫存 venv 的 PyPI 最新 ruff 0.17.3、pytest 9.2.0 實測 ruff check 全綠、pytest 62 passed，沒有提高最低版本的必要；2026-12-02 複審，若出現更新版本則由 freshness 提前提醒"
     }
   }
 }

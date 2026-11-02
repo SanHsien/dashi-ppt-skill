@@ -1,6 +1,6 @@
 # Repository review（Windows-first）
 
-- Review date: 2026-09-04（2026-10-25 更新狀態）
+- Review date: 2026-09-04（2026-11-02 更新 ruff 複審狀態）
 - Fork point: 上游 `7cb23347f91cda1a5519eafc8c040704e389535a`（`Publish skill v0.4.11`，2026-07-30）
 - Upstream watermarks（以 `tools/upstream_baseline.json` 為準）: commit `21dc7e5`（v0.4.14，已審查、整包未合併，見 D-13）；`reviewed_pr_through` = **36**、`reviewed_issue_through` = **44**（2026-10-17 審查，D-14）
 - Primary environment: Windows 11、PowerShell、Python 3.14（本機）、CI Ubuntu 3.9–3.14 + Windows 3.14、Node.js 26（本機）／22（CI）
@@ -37,6 +37,15 @@
 | R-05 | P3 | 上游 README 的 Star History 與 GitHub stars badge 指向上游 repo。 | `README.zh-CN.md` / `README.en.md` 是上游鏡像，保留原樣；繁中入口 `README.md` 不轉載這些區塊（`test_readme_keeps_credit_without_author_promotion` 擋住）。 |
 
 ## 本輪實證
+
+### ruff 基線複審（2026-11-02）
+
+- 觸發證據：`Dependency freshness` run `41295066250`（2026-11-01）exit 1；本機變更前 `python tools/check_dependency_freshness.py --strict` 同樣 exit 1，唯一待審列為 ruff（0.17.2 → 0.17.3）。
+- 實測環境：Windows、Python 3.14.10、系統暫存目錄 `dashi-ruff-review-20261102` 的獨立 venv，安裝 PyPI 最新 ruff 0.17.3、pytest 9.2.0。`python -m ruff check` exit 0（`All checks passed!`）；`python -m pytest tests -q` exit 0（`62 passed`）。
+- 決定：保留 `requirements-dev.txt` 的 `ruff>=0.16`、`pyproject.toml` 的 py39 與 E9/F，無需提高相容下限；deferral 更新為 0.17.3，`reviewed` 2026-11-02、`revisit` 2026-12-02。更新版本出現時 freshness 仍會恢復提醒。這是依賴審視，未修改程式邏輯，無新增 bug 回歸測試。
+
+- 完整驗收：將暫存 venv 的 `Scripts` 加到該驗收程序的 PATH 後，`pwsh -NoProfile -File tools/dev_check.ps1` exit 0：`62 passed`、167 個 JS 語法檢查、12 個 Node 安全測試通過、17 份維護文件連結無缺檔，結尾 `WINDOWS DEV CHECK GREEN`。skill validator 保留既有 1 warning、0 issues。
+- 更新後 `python tools/check_dependency_freshness.py --strict` exit 0：ruff `DEFERRED at 0.17.3`、pytest `HELD`，所有 Actions `OK`；未提高任何依賴下限。
 
 ### 本機 Windows gate（2026-09-04）
 
