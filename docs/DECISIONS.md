@@ -5,6 +5,18 @@
 
 ---
 
+## 2026-11-05 — D-16 Python 3.9 的 CI 測試矩陣釘在 ubuntu-24.04
+
+**決定**：`.github/workflows/ci.yml` 中矩陣內 `python-version == '3.9'` 的 leg（`runs-on` 以條件式選 runner）改在 `ubuntu-24.04` 執行；其他 Python 版本與 Windows／macOS 不動。
+
+**理由**：`ubuntu-latest` 已換成 Ubuntu 26.04，`actions/setup-python` 在該映像沒有 Python 3.9（官方 versions-manifest 的 3.9.25 只有 22.04、24.04），Set up Python 步驟會失敗：`The version '3.9' with architecture 'x64' was not found for Ubuntu 26.04`。此舉保住既有 Python 3.9 支援宣告的測試，不縮減矩陣。
+
+**觸發條件**：`ubuntu-24.04` runner 退役或停止支援 Python 3.9、`setup-python` 補上 26.04 的 3.9 build、或決定放棄 Python 3.9 支援時，移除此釘版。
+
+**邊界**：本輪範圍明確包含 `ci.yml`；D-15「禁止修改 workflow」只限上一輪的範圍，不適用本條。
+
+---
+
 ## 2026-11-05 — D-15 CodeQL Action 4.39.3 有期限暫緩
 
 **決定**：`github/codeql-action/init` 與 `analyze` 暫留 4.39.1，各自登記 `deferredLatest: 4.39.3`；不修改 workflow 或任何依賴宣告下限，複審日為 2026-11-12。
