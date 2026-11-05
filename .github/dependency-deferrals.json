@@ -6,6 +6,18 @@
       "reviewed": "2026-11-02",
       "revisit": "2026-12-02",
       "reason": "保留 maintainer linter 相容下限 0.16 與既有 E9/F 規則；2026-11-02 以系統暫存 venv 的 PyPI 最新 ruff 0.17.3、pytest 9.2.0 實測 ruff check 全綠、pytest 62 passed，沒有提高最低版本的必要；2026-12-02 複審，若出現更新版本則由 freshness 提前提醒"
+    },
+    "github/codeql-action/init": {
+      "deferredLatest": "4.39.3",
+      "reviewed": "2026-11-05",
+      "revisit": "2026-11-12",
+      "reason": "已審閱 4.39.2（預設 bundle 2.27.4、舊版與 TRAP cache 警告）及 4.39.3（含空白、特殊或非 ASCII 路徑的差異警示過濾修正）；本 repo 使用 Ubuntu 的 JS/Python 掃描，未設定舊 bundle、macOS traced analysis 或 TRAP cleanup。更新值得採用，但本輪禁止修改 workflow，既有決策未明確授權本輪重釘；暫留 4.39.1，待維護者授權重釘並以遠端 CodeQL 雙語言掃描驗收。本機 gate 不涵蓋 CodeQL；2026-11-12 複審，更新版本亦恢復提醒"
+    },
+    "github/codeql-action/analyze": {
+      "deferredLatest": "4.39.3",
+      "reviewed": "2026-11-05",
+      "revisit": "2026-11-12",
+      "reason": "已審閱 4.39.2（預設 bundle 2.27.4、舊版與 TRAP cache 警告）及 4.39.3（含空白、特殊或非 ASCII 路徑的差異警示過濾修正）；本 repo 使用 Ubuntu 的 JS/Python 掃描，未設定舊 bundle、macOS traced analysis 或 TRAP cleanup。更新值得採用，但本輪禁止修改 workflow，既有決策未明確授權本輪重釘；暫留 4.39.1，待維護者授權重釘並以遠端 CodeQL 雙語言掃描驗收。本機 gate 不涵蓋 CodeQL；2026-11-12 複審，更新版本亦恢復提醒"
     }
   }
 }

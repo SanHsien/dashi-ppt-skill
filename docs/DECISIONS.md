@@ -5,6 +5,16 @@
 
 ---
 
+## 2026-11-05 — D-15 CodeQL Action 4.39.3 有期限暫緩
+
+**決定**：`github/codeql-action/init` 與 `analyze` 暫留 4.39.1，各自登記 `deferredLatest: 4.39.3`；不修改 workflow 或任何依賴宣告下限，複審日為 2026-11-12。
+
+**評估**：[4.39.2](https://github.com/github/codeql-action/releases/tag/v4.39.2) 更新預設 bundle 至 2.27.4，新增舊 CodeQL、macOS traced analysis 與已移除 TRAP cleanup 的警告；[4.39.3](https://github.com/github/codeql-action/releases/tag/v4.39.3) 修正含空白、特殊或非 ASCII 路徑的差異警示過濾。本 repo 的 `codeql.yml` 使用 Ubuntu、JS/Python 與 `security-extended`，未指定舊 bundle、macOS 或 TRAP cleanup；路徑過濾修正值得隨升級採用，未宣稱本 repo 不受影響。
+
+**理由與邊界**：本輪維護範圍禁止修改 workflow，除非既有決策明確允許；先前 D-12 記錄特定版本重釘，不視為本輪的概括授權。採用有期限暫緩，待維護者授權重釘後，以遠端 CodeQL 雙語言掃描驗收；完整本機 gate 不含 CodeQL，不能證明新 bundle 相容。追蹤僅放在 `ROADMAP.md`；新版本超過 4.39.3 時檢查會再次提醒，日期本身不自動觸發檢查。pytest 的 Python 3.9 hold 與 ruff 0.17.3 既有 deferral 保留。
+
+---
+
 ## 2026-10-17 — D-14 採納 PR #34 Windows 執行修復、整合幾何跑版檢測引擎與 Issue #44 審查（升版 v0.5.0）
 
 **範圍**：0 個新 commit（水位 `21dc7e5`）、1 個採納 PR（上游 OPEN PR #34）、1 個新 issue 審查（#44《npx安装的skill停留在v0.4.5》）。

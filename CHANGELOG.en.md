@@ -11,6 +11,12 @@ Per-commit adopt/skip reasoning lives in [`docs/DECISIONS.md`](docs/DECISIONS.md
 
 ---
 
+## 2026-11-05 (CodeQL freshness review)
+
+### Maintenance
+
+- Reviewed CodeQL Action 4.39.2/4.39.3 and recorded separate deferrals through 4.39.3 for `init` and `analyze`, with a 2026-11-12 revisit. Kept workflows and compatibility floors unchanged in this task. Repinning requires maintainer authorization and remote CodeQL validation; see D-15 and the roadmap.
+
 ## 2026-11-02 (ruff baseline review)
 
 ### Maintenance

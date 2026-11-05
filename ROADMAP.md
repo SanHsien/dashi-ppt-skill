@@ -17,6 +17,7 @@
 ## 中期：等條件成立再做
 | 項目 | 觸發條件 | 驗收方式 | 建議執行者 | 證據 |
 | --- | --- | --- | --- | --- |
+| 複審並升級 CodeQL Action 4.39.3 | 維護者授權修改 workflow，或 2026-11-12 到期，或新版超過 4.39.3 | `init`／`analyze` 重釘同一已核對 SHA、刪除兩筆 deferral；strict freshness、完整 Windows gate 與遠端 CodeQL JS/Python 掃描通過 | 維護者／Codex | `docs/DECISIONS.md` D-15；`.github/dependency-deferrals.json`；日期不自動觸發檢查 |
 | 複審 ruff 基線 | `.github/dependency-deferrals.json` 的 `revisit` 日（2026-12-02）到期，或 Dependency freshness 因 PyPI 超過 `deferredLatest` 而提醒；`revisit` 不會自動觸發任何檢查，只靠這一列追 | 決定升基線或延後：升則 ruff floor 與 `pyproject.toml` 同步、`ruff check` 與 `tools\dev_check.ps1` 綠並刪除該 deferral；延後則更新 `revisit` 與 `reason` | Codex | `.github/dependency-deferrals.json`；`REVIEW.md` ruff 基線複審（2026-11-02） |
 | 上游新版審查（含整包對齊 v0.4.12–v0.4.14 的決定） | `Upstream check`（每週一 03:00 UTC）轉 failure，或 `git ls-remote` 上游 main 出現 `21dc7e5` 之後的 commit；failure 代表有未審項目，不是工具壞。整包對齊另需：維護者決定以上游發版為基底重放 D-12 修補，或上游新版含安全性修正 | 逐項判決寫進 `docs/DECISIONS.md`、`tools/upstream_baseline.json` 水位前進；有移植的跑 `pwsh -NoProfile -File tools\dev_check.ps1` 綠並更新 `docs/UPSTREAM.md` | Claude Opus | `docs/DECISIONS.md` D-13（觸發條件段）；`.github/workflows/upstream-check.yml:11` |
 | 補上 `render:themes` script 或改呼叫端 | 上游修好 issue #29（或維護者決定本線先分叉） | `skills/dashi-ppt/project/package.json` 有該 script 或 `preview-freshness.mjs` 不再呼叫它；主題預覽過期時流程不中斷；`REVIEW.md` R-06 回註 commit | Claude Sonnet | `docs/DECISIONS.md` D-08；`REVIEW.md` R-06；`skills/dashi-ppt/project/scripts/preview-freshness.mjs:48` |
