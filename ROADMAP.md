@@ -5,7 +5,7 @@
 
 ## 現況
 
-上游 `chuspeeism/dashi-ppt-skill`（AI Agent 的 PPT 技能）的維護 fork（public，非 GitHub fork 關係，但有上游遠端）。2026-10-29 健康快照：`CI`、`CodeQL`、`Dependency freshness`、`Upstream check` 預設分支最近一次皆 success；Dependabot 與 Code scanning 告警 0 筆；open PR 0 筆；issues 已停用（未查到 issue 數，不是 0）；最近 release 為 v0.5.0（2026-10-17）。上游審查水位 `d2b7538`／PR 45／issue 44（`tools/upstream_baseline.json`），該次快照沒有卡住的事，近期無必做項。
+上游 `chuspeeism/dashi-ppt-skill`（AI Agent 的 PPT 技能）的維護 fork（public，非 GitHub fork 關係，但有上游遠端）。2026-10-29 健康快照：`CI`、`CodeQL`、`Dependency freshness`、`Upstream check` 預設分支最近一次皆 success；Dependabot 與 Code scanning 告警 0 筆；open PR 0 筆；issues 已停用（未查到 issue 數，不是 0）；最近 release 為 v0.5.0（2026-10-17）。上游審查水位（2026-11-09 推進）`d2b7538`／PR 45／issue 44（`tools/upstream_baseline.json`），該次快照沒有卡住的事，近期無必做項。
 
 2026-11-02 複查：`Dependency freshness` 的 [2026-11-01 執行](https://github.com/SanHsien/dashi-ppt-skill/actions/runs/41295066250) 因 ruff 0.17.3 超過已審版本 0.17.2 而 failure。已於暫存 venv 實測最新版 lint／測試，保留相容下限並更新 deferral（下次複審 2026-12-02）；詳細證據見 `REVIEW.md`。
 
