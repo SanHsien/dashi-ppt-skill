@@ -5,6 +5,28 @@
 
 ---
 
+## 2026-11-09 — D-17 上游 SLIDESIGN 贊助商 commit 與 PR #45：審查，只鏡像進 zh-CN 原檔
+
+**範圍**：2 個 commit（`39f988e` 2026-11-05、`d2b7538` merge 2026-11-06）、1 個新 PR（#45，已 MERGED）、0 個新 issue（水位 #44）。上游分支 `add-slidesign-sponsor` head 與 PR #45 head 同為 `39f988e`；open PR 只有 #34（head `ff88595`）與 #36（head `79a7f98`），均為既有水位內項目。
+
+**證據**：`git diff 21dc7e5 upstream/main --numstat` 為 `README.en.md` +9/-0、`README.md` +9/-0、`assets/partners/logos/slidesign.png`（二進位新增，497x320 PNG，21269 bytes）。三處皆未動產品樹（`skills/`、`npm-dist/`、`.claude-plugin/`）。PR #45 的 diff 共 44 行；隱藏內容掃描（零寬／雙向控制字元、HTML 註解、`<script>`、`display:none`）皆為 0 筆，出現的外部網址只有 `https://slidesign.cn/` 與上游既有的 hero-result.gif。
+
+**決定**：
+
+| 項目 | 判斷 | 理由 |
+| --- | --- | --- |
+| `39f988e` / PR #45 對 `README.md`（簡中）的贊助商段落 | 採用於 `README.zh-CN.md`（逐字鏡像，+9/-0）與 `assets/partners/logos/slidesign.png`（blob 與上游同為 `7674af9`） | `README.zh-CN.md` 是上游簡中原檔的鏡像（與上游 `21dc7e5` 的 README 只差導覽列一行），鏡像要忠於原檔；內容是上游文字，不是本 fork 的背書 |
+| 同段落對繁中 `README.md` | 略過 | AGENTS.md 規定作者宣傳與贊助 CTA 不轉載進繁中入口；繁中入口與贊助商無關係 |
+| 同段落對 `README.en.md` | 略過 | 同上；本檔是 fork 入口，保留 fork 說明，不轉載贊助 CTA |
+| `d2b7538`（merge commit） | not-applicable | 無檔案變動 |
+| 產品功能、主題、匯出引擎 | 無變動 | 這兩個 commit 不含任何產品變更，D-13 的整包對齊決定不受影響 |
+
+**觸發條件**：上游贊助商段落若改為帶追蹤連結或優惠碼、或 logo 檔含非 PNG 內容，重新審視是否仍鏡像；其餘沿用 D-13 的整包對齊條件。
+
+**後果**：baseline 推進到 `d2b7538`、PR 水位 `45`，代表已審查，不代表已合併。
+
+---
+
 ## 2026-11-05 — D-16 Python 3.9 的 CI 測試矩陣釘在 ubuntu-24.04
 
 **決定**：`.github/workflows/ci.yml` 中矩陣內 `python-version == '3.9'` 的 leg（`runs-on` 以條件式選 runner）改在 `ubuntu-24.04` 執行；其他 Python 版本與 Windows／macOS 不動。

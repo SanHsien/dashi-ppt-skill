@@ -11,6 +11,12 @@ Per-commit adopt/skip reasoning lives in [`docs/DECISIONS.md`](docs/DECISIONS.md
 
 ---
 
+## 2026-11-09 (upstream review)
+
+### Maintenance
+
+- Reviewed upstream `39f988e`/`d2b7538` (SLIDESIGN sponsor) and PR #45: mirrored the sponsor section and logo into `README.zh-CN.md` only; the Traditional Chinese and English entry points do not carry sponsor CTAs. Review watermarks advanced to `d2b7538`/PR 45; see D-17.
+
 ## 2026-11-05 (CodeQL freshness review)
 
 ### Maintenance
