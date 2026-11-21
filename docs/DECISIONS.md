@@ -5,6 +5,16 @@
 
 ---
 
+## 2026-11-21 — D-18 CodeQL Action 重釘 4.39.4；ruff 延後更新到 0.17.6
+
+**觸發**：路線圖中期列「複審並升級 CodeQL Action 4.39.3」的條件已成立：複審日 2026-11-12 已過，且上游已發 [4.39.4](https://github.com/github/codeql-action/releases/tag/v4.39.4)（2026-11-20，只把預設 CodeQL bundle 升到 2.27.5）。「複審 ruff 基線」的條件也成立：PyPI ruff 0.17.6 超過 `deferredLatest` 0.17.3。
+
+**決定**：`init` 與 `analyze` 重釘同一個已核對的 commit `1bd86f2fdb4b86187fa4059f16f31a3202acc9ea`（`git/tags` 解出的 `v4.39.4` 指向），刪除兩筆 CodeQL deferral。D-15 暫緩的唯一理由是「該輪禁止修改 workflow」；路線圖把到期日與新版本列為獨立觸發，本輪依此重釘，驗收看遠端 CodeQL JS/Python 掃描。ruff 維持下限 0.16，延後版本更新到 0.17.6，複審日改為 2026-12-21。
+
+**證據**：`python tools/check_dependency_freshness.py --strict` 在改動前 exit 1（ruff 與 codeql-action 皆 REVIEW UPDATE）；以 ruff 0.17.6 跑 `tools\dev_check.ps1` 的 ruff 階段全綠、pytest 62 passed。
+
+---
+
 ## 2026-11-09 — D-17 上游 SLIDESIGN 贊助商 commit 與 PR #45：審查，只鏡像進 zh-CN 原檔
 
 **範圍**：2 個 commit（`39f988e` 2026-11-05、`d2b7538` merge 2026-11-06）、1 個新 PR（#45，已 MERGED）、0 個新 issue（水位 #44）。上游分支 `add-slidesign-sponsor` head 與 PR #45 head 同為 `39f988e`；open PR 只有 #34（head `ff88595`）與 #36（head `79a7f98`），均為既有水位內項目。

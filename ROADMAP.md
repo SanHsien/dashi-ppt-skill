@@ -12,14 +12,12 @@
 ## 近期：可以直接動手
 | 項目 | 為什麼 | 驗收方式 | 建議執行者 | 證據 |
 | --- | --- | --- | --- | --- |
-| 無 | 工作區乾淨、無 open PR、無告警、四個 workflow 皆綠；已知缺陷都屬上游持有且已登記（見「刻意不做」），不在本線修 | — | — | 2026-10-29 證據快照；接續開發報告（2026-10-25）、深掃報告（2026-10-26） |
+| 上游新版審查（含整包對齊 v0.4.12–v0.4.14 的決定） | 觸發條件已成立（2026-11-21 查：`python tools/check_upstream_updates.py --strict` exit 1：上游新 issue #46 待分流（commit 軸無新 commit）；`Upstream check` 2026-11-20 failure；整包對齊的附加條件未成立）。原條件：`Upstream check`（每週一 03:00 UTC）轉 failure，或 `git ls-remote` 上游 main 出現 `d2b7538` 之後的 commit；failure 代表有未審項目，不是工具壞。整包對齊另需：維護者決定以上游發版為基底重放 D-12 修補，或上游新版含安全性修正 | 逐項判決寫進 `docs/DECISIONS.md`、`tools/upstream_baseline.json` 水位前進；有移植的跑 `pwsh -NoProfile -File tools\dev_check.ps1` 綠並更新 `docs/UPSTREAM.md` | Claude Opus | `docs/DECISIONS.md` D-13（觸發條件段）；`.github/workflows/upstream-check.yml:11` |
 
 ## 中期：等條件成立再做
 | 項目 | 觸發條件 | 驗收方式 | 建議執行者 | 證據 |
 | --- | --- | --- | --- | --- |
-| 複審並升級 CodeQL Action 4.39.3 | 維護者授權修改 workflow，或 2026-11-12 到期，或新版超過 4.39.3 | `init`／`analyze` 重釘同一已核對 SHA、刪除兩筆 deferral；strict freshness、完整 Windows gate 與遠端 CodeQL JS/Python 掃描通過 | 維護者／Codex | `docs/DECISIONS.md` D-15；`.github/dependency-deferrals.json`；日期不自動觸發檢查 |
-| 複審 ruff 基線 | `.github/dependency-deferrals.json` 的 `revisit` 日（2026-12-02）到期，或 Dependency freshness 因 PyPI 超過 `deferredLatest` 而提醒；`revisit` 不會自動觸發任何檢查，只靠這一列追 | 決定升基線或延後：升則 ruff floor 與 `pyproject.toml` 同步、`ruff check` 與 `tools\dev_check.ps1` 綠並刪除該 deferral；延後則更新 `revisit` 與 `reason` | Codex | `.github/dependency-deferrals.json`；`REVIEW.md` ruff 基線複審（2026-11-02） |
-| 上游新版審查（含整包對齊 v0.4.12–v0.4.14 的決定） | `Upstream check`（每週一 03:00 UTC）轉 failure，或 `git ls-remote` 上游 main 出現 `d2b7538` 之後的 commit；failure 代表有未審項目，不是工具壞。整包對齊另需：維護者決定以上游發版為基底重放 D-12 修補，或上游新版含安全性修正 | 逐項判決寫進 `docs/DECISIONS.md`、`tools/upstream_baseline.json` 水位前進；有移植的跑 `pwsh -NoProfile -File tools\dev_check.ps1` 綠並更新 `docs/UPSTREAM.md` | Claude Opus | `docs/DECISIONS.md` D-13（觸發條件段）；`.github/workflows/upstream-check.yml:11` |
+| 複審 ruff 基線 | `.github/dependency-deferrals.json` 的 `revisit` 日（2026-12-21）到期，或 Dependency freshness 因 PyPI 超過 `deferredLatest` 而提醒；`revisit` 不會自動觸發任何檢查，只靠這一列追 | 決定升基線或延後：升則 ruff floor 與 `pyproject.toml` 同步、`ruff check` 與 `tools\dev_check.ps1` 綠並刪除該 deferral；延後則更新 `revisit` 與 `reason` | Codex | `.github/dependency-deferrals.json`；`REVIEW.md` ruff 基線複審（2026-11-02） |
 | 補上 `render:themes` script 或改呼叫端 | 上游修好 issue #29（或維護者決定本線先分叉） | `skills/dashi-ppt/project/package.json` 有該 script 或 `preview-freshness.mjs` 不再呼叫它；主題預覽過期時流程不中斷；`REVIEW.md` R-06 回註 commit | Claude Sonnet | `docs/DECISIONS.md` D-08；`REVIEW.md` R-06；`skills/dashi-ppt/project/scripts/preview-freshness.mjs:48` |
 | 升級測試基準（pytest 9 等需要新 Python 的依賴） | CI 矩陣不再測 py3.9（`.github/workflows/ci.yml:25`）時，才取消 `requirements-dev.txt:2` 的 `freshness-hold` 標記 | pytest 下限升到 9、移除標記、`CI` 全矩陣綠、`Dependency freshness` 綠 | Codex | `.github/workflows/ci.yml:25`；`requirements-dev.txt:1-2` |
 
