@@ -55,6 +55,7 @@ python tools/check_upstream_updates.py --strict
 | 2026-09-30 | `21dc7e5` | 36 | 43 | 三個上游發版 commit（v0.4.12–v0.4.14，122 檔）審查完畢，**零採用**（與 D-12 分歧檔衝突、無法本機驗證），理由與觸發條件見 [`DECISIONS.md`](DECISIONS.md) D-13。 |
 | 2026-10-17 | `21dc7e5` | 36 | 44 | 採納上游 PR #34（Windows 執行路徑相容性修復與 `/api/list-decks` 介面）；整合幾何跑版檢測引擎（`inspect:geometry`）；審查 issue #44（npm 發布版本狀態）；雙端門禁綠燈，升版至 `v0.5.0`。詳見 [`DECISIONS.md`](DECISIONS.md) D-14。 |
 | 2026-11-09 | `d2b7538` | 45 | 44 | 上游 SLIDESIGN 贊助商 commit（`39f988e`、merge `d2b7538`）與 PR #45 審查：只把贊助商段落與 logo 鏡像進 `README.zh-CN.md`，繁中與英文入口依規定不轉載；無產品樹變動。詳見 [`DECISIONS.md`](DECISIONS.md) D-17。 |
+| 2026-11-22 | `d2b7538` | 45 | 46 | 無新 commit／PR；審查 issue #46（技能目錄 371 檔／57 MiB 超出第三方 DSH 安裝器上限）：打包結構屬上游決定，本線依 D-02 不改產品樹。詳見 [`DECISIONS.md`](DECISIONS.md) D-19。 |
 
 ## 本 fork 不同步的東西
 

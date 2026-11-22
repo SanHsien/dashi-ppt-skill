@@ -5,14 +5,14 @@
 
 ## 現況
 
-上游 `chuspeeism/dashi-ppt-skill`（AI Agent 的 PPT 技能）的維護 fork（public，非 GitHub fork 關係，但有上游遠端）。2026-10-29 健康快照：`CI`、`CodeQL`、`Dependency freshness`、`Upstream check` 預設分支最近一次皆 success；Dependabot 與 Code scanning 告警 0 筆；open PR 0 筆；issues 已停用（未查到 issue 數，不是 0）；最近 release 為 v0.5.0（2026-10-17）。上游審查水位（2026-11-09 推進）`d2b7538`／PR 45／issue 44（`tools/upstream_baseline.json`），該次快照沒有卡住的事，近期無必做項。
+上游 `chuspeeism/dashi-ppt-skill`（AI Agent 的 PPT 技能）的維護 fork（public，非 GitHub fork 關係，但有上游遠端）。2026-10-29 健康快照：`CI`、`CodeQL`、`Dependency freshness`、`Upstream check` 預設分支最近一次皆 success；Dependabot 與 Code scanning 告警 0 筆；open PR 0 筆；issues 已停用（未查到 issue 數，不是 0）；最近 release 為 v0.5.0（2026-10-17）。上游審查水位（2026-11-22 推進）`d2b7538`／PR 45／issue 46（`tools/upstream_baseline.json`），該次快照沒有卡住的事，近期無必做項。
 
 2026-11-02 複查：`Dependency freshness` 的 [2026-11-01 執行](https://github.com/SanHsien/dashi-ppt-skill/actions/runs/41295066250) 因 ruff 0.17.3 超過已審版本 0.17.2 而 failure。已於暫存 venv 實測最新版 lint／測試，保留相容下限並更新 deferral（下次複審 2026-12-02）；詳細證據見 `REVIEW.md`。
 
 ## 近期：可以直接動手
 | 項目 | 為什麼 | 驗收方式 | 建議執行者 | 證據 |
 | --- | --- | --- | --- | --- |
-| 上游新版審查（含整包對齊 v0.4.12–v0.4.14 的決定） | 觸發條件已成立（2026-11-21 查：`python tools/check_upstream_updates.py --strict` exit 1：上游新 issue #46 待分流（commit 軸無新 commit）；`Upstream check` 2026-11-20 failure；整包對齊的附加條件未成立）。原條件：`Upstream check`（每週一 03:00 UTC）轉 failure，或 `git ls-remote` 上游 main 出現 `d2b7538` 之後的 commit；failure 代表有未審項目，不是工具壞。整包對齊另需：維護者決定以上游發版為基底重放 D-12 修補，或上游新版含安全性修正 | 逐項判決寫進 `docs/DECISIONS.md`、`tools/upstream_baseline.json` 水位前進；有移植的跑 `pwsh -NoProfile -File tools\dev_check.ps1` 綠並更新 `docs/UPSTREAM.md` | Claude Opus | `docs/DECISIONS.md` D-13（觸發條件段）；`.github/workflows/upstream-check.yml:11` |
+| 上游新版審查（含整包對齊 v0.4.12–v0.4.14 的決定） | 觸發條件：`Upstream check`（每週一 03:00 UTC）轉 failure，或 `git ls-remote` 上游 main 出現 `d2b7538` 之後的 commit；failure 代表有未審項目，不是工具壞。整包對齊另需：維護者決定以上游發版為基底重放 D-12 修補，或上游新版含安全性修正 | 逐項判決寫進 `docs/DECISIONS.md`、`tools/upstream_baseline.json` 水位前進；有移植的跑 `pwsh -NoProfile -File tools\dev_check.ps1` 綠並更新 `docs/UPSTREAM.md` | Claude Opus | `docs/DECISIONS.md` D-13（觸發條件段）、D-19（issue #46 打包結構）；`.github/workflows/upstream-check.yml:11` |
 
 ## 中期：等條件成立再做
 | 項目 | 觸發條件 | 驗收方式 | 建議執行者 | 證據 |

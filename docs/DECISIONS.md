@@ -5,6 +5,24 @@
 
 ---
 
+## 2026-11-22 — D-19 上游 issue #46（技能目錄超出 DSH 安裝上限）：審查，本線不改產品樹
+
+**範圍**：0 個新 commit（水位 `d2b7538`）、0 個新 PR（水位 #45，checker 無 monitored drift）、1 個新 issue（#46，OPEN，2026-11-19，無標籤、無留言）。
+
+**證據**：issue 內文是向上游作者詢問打包方向的問題，不含程式碼、外部網址或隱藏內容（零寬／雙向控制字元、HTML 註解、`<script>` 掃描 0 筆）。回報者指出第三方清單 `openfcp/awesome-financial-skills` 的 DSH 安裝器上限（≤200 檔、單檔 ≤2 MiB、總量 ≤16 MiB），上游 `skills/dashi-ppt/` 為 371 檔／57.1 MiB。本線實測（`git ls-files skills/dashi-ppt`）為 418 檔／58.3 MiB，最大單檔 `project/src/components/themes/generated-metadata.js` 4.5 MiB、`project/layout-manifest.json` 3.5 MiB，同樣三條全部超出。
+
+**決定**：
+
+| 項目 | 判斷 | 理由 |
+| --- | --- | --- |
+| #46 提的三個方向（`project/` 改隨 npm 發布或首次執行拉取、生成物移出技能目錄、標註只支援不限體積的客戶端） | defer（本線不動） | 三者都是產品打包結構的決定，屬上游作者；本線依 D-02 不改產品樹，`generated-metadata.js`、`layout-manifest.json` 是生成器執行時讀的檔，自行移出會在下次同步對撞，也無法驗證全部主題仍可渲染。本線不經該第三方清單分發，安裝方式維持 `npx dashi-ppt-skill@latest` 與 git／plugin |
+
+**觸發條件**：上游對 #46 回覆並改動打包結構（例如把 `project/` 移出技能目錄、改為建置時產生 `generated-metadata.js`），或本線決定經有體積上限的安裝器分發時，重新評估；屆時與 D-13 的整包對齊一併處理。
+
+**後果**：`reviewed_issue_through` 推進到 `46`，代表已審查，不代表已處理。
+
+---
+
 ## 2026-11-21 — D-18 CodeQL Action 重釘 4.39.4；ruff 延後更新到 0.17.6
 
 **觸發**：路線圖中期列「複審並升級 CodeQL Action 4.39.3」的條件已成立：複審日 2026-11-12 已過，且上游已發 [4.39.4](https://github.com/github/codeql-action/releases/tag/v4.39.4)（2026-11-20，只把預設 CodeQL bundle 升到 2.27.5）。「複審 ruff 基線」的條件也成立：PyPI ruff 0.17.6 超過 `deferredLatest` 0.17.3。
