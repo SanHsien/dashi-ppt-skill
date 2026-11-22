@@ -5,6 +5,16 @@
 
 ---
 
+## 2026-11-22 — D-21 SKILL.md 移除失效命令 `showcase:update`；幾何量測不再全面排除截圖
+
+**問題**（prompt audit 第 3 批）：
+- `skills/dashi-ppt/SKILL.md` 校驗段要求「改动展示 demo 后运行 `npm run showcase:update`」，但本 repo 與 `upstream/main` 的所有 `package.json` 都沒有這個 script（`git grep showcase` 只命中這一行），照做必定失敗。上游檔，fork 產品修正。
+- D-14 加的幾何量測段（:46、:144）寫「不使用…缺乏像素精度的截图 Vision」「避免大开销截圖」，跟同檔 :126（`validate:four-variant-quality` 截圖每頁 v4）、:140（bespoke 完成視覺檢查）矛盾，也不符現行模型讀截圖的能力。
+
+**做法**：刪掉 `showcase:update` 那行；兩處改成「溢出與碰撞先用 DOM 幾何量測，構圖與 v4 視覺品質仍以截圖判斷」。幾何量測工具本身不動。
+
+**重審條件**：上游補上 `showcase:update` script 時把那行還原。
+
 ## 2026-11-22 — D-20 預覽／匯出伺服器預設只綁回環；無 Origin 的匯出請求改看 socket 對端地址
 
 **缺陷（艦隊稽核）**：`serve-preview-https.mjs`、`start-preview-server.mjs` 預設綁 `0.0.0.0`（埠 4178），沒有驗證，同網段任何主機都連得到。匯出端點（headless Chromium、寫檔）靠 `preview-export-auth.mjs` 的 `isExportRequestAllowed` 擋：有 `Origin`／`Referer` 時對允許清單，兩者皆無時只問「伺服器綁在不在回環」。這個判斷不看請求是誰發的，只看服務對誰開放；一旦綁回環（本決定的預設），任何能連上來的無標頭請求都放行，而直接以請求 `Host` 判斷則區網上的非瀏覽器客戶端可以任意偽造 `Host: localhost`。

@@ -29,7 +29,7 @@
 | `.github/workflows/codeql.yml`、`dependency-freshness.yml` | 安全掃描與依賴新鮮度 |
 | `.cursor/rules/no-upstream-pr.mdc` | fork 的 PR 邊界機器層 |
 | `docs/DECISIONS.md`、`docs/UPSTREAM.md`、`docs/DEVELOPMENT.md`、`docs/SKILL-SPEC.md` | fork 維護文件 |
-| `幾何 Hit-Test 量測 (inspect:geometry)` | 以 DOM Bounding Box & AABB 碰撞量測取代昂貴多模態截圖，將跑版檢測壓至 < 100 Tokens，網頁預覽按 G 鍵切換標註 |
+| `幾何 Hit-Test 量測 (inspect:geometry)` | 以 DOM Bounding Box & AABB 碰撞量測先抓文字溢出與元件碰撞（< 100 Tokens），構圖與視覺品質仍用截圖（D-21），網頁預覽按 G 鍵切換標註 |
 | `skills/dashi-ppt/project/scripts/{serve-preview-https,start-preview-server,preview-export-auth}.mjs`、`preview/export-routes.mjs`、`tests/security/export-auth.test.mjs` | 預覽／匯出伺服器預設綁 `127.0.0.1`（LAN 需 `DASHI_PPT_PREVIEW_HOST=0.0.0.0`）；無 Origin 的匯出請求查 socket 對端是否回環，不信 Host。見 docs/DECISIONS.md D-20（D-11 安全例外） |
 | `REVIEW.md` | 風險快照，不是每個一般 bug 的流水帳 |
 
