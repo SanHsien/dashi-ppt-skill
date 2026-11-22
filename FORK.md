@@ -30,14 +30,15 @@
 | `.cursor/rules/no-upstream-pr.mdc` | fork 的 PR 邊界機器層 |
 | `docs/DECISIONS.md`、`docs/UPSTREAM.md`、`docs/DEVELOPMENT.md`、`docs/SKILL-SPEC.md` | fork 維護文件 |
 | `幾何 Hit-Test 量測 (inspect:geometry)` | 以 DOM Bounding Box & AABB 碰撞量測取代昂貴多模態截圖，將跑版檢測壓至 < 100 Tokens，網頁預覽按 G 鍵切換標註 |
+| `skills/dashi-ppt/project/scripts/{serve-preview-https,start-preview-server,preview-export-auth}.mjs`、`preview/export-routes.mjs`、`tests/security/export-auth.test.mjs` | 預覽／匯出伺服器預設綁 `127.0.0.1`（LAN 需 `DASHI_PPT_PREVIEW_HOST=0.0.0.0`）；無 Origin 的匯出請求查 socket 對端是否回環，不信 Host。見 docs/DECISIONS.md D-20（D-11 安全例外） |
 | `REVIEW.md` | 風險快照，不是每個一般 bug 的流水帳 |
 
 產品 `skills/`、`npm-dist/`、`.claude-plugin/` 以上游為準，除非有已記錄的 fork 修正。
 
 **目前的 fork 修正都是安全性例外**：`skills/dashi-ppt/project/package-lock.json` 的 esbuild 釘在
 `>= 0.28.1`，以及產品樹內的 CodeQL 修補（stored XSS、物件原型改寫、deck asset symlink
-逃逸、共享 temp lock/log 劫持）。範圍、判讀與驗證見 [`docs/DECISIONS.md`](docs/DECISIONS.md)
-D-11／D-12。上游同步時不得直接覆蓋；`tests/test_docs.py::test_security_exception_floor_still_holds`
+逃逸、共享 temp lock/log 劫持），以及預覽伺服器的預設綁定與匯出鑑權（D-20）。範圍、判讀與驗證見 [`docs/DECISIONS.md`](docs/DECISIONS.md)
+D-11／D-12／D-20。上游同步時不得直接覆蓋；`tests/test_docs.py::test_security_exception_floor_still_holds`
 與 `tests/security/*.test.mjs` 會擋版本或安全邊界回退。
 
 ## 授權邊界

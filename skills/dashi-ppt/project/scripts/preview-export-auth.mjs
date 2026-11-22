@@ -7,12 +7,26 @@ export function isLoopbackHost(host) {
 // - 带 Origin:必须在允许列表(同源/显式允许的回环与 LAN 地址)。
 // - 无 Origin 但带 Referer(浏览器顶层导航式下载,如下载 PDF/PPTX 触发的
 //   `location.assign()` 不带 Origin 头):Referer 的 origin 必须在允许列表。
-// - 都没有(curl/脚本):仅当服务器绑定在回环时放行;绑 LAN 时拒绝。
-export function isExportRequestAllowed({ origin, referer, host, allowedOrigins }) {
+// - 都没有(curl/脚本):只看 TCP 连接的对端地址(req.socket.remoteAddress)必须是回环。
+//   不能看 Host 头:局域网上的非浏览器客户端可以随手伪造 `Host: localhost`;也不能只看
+//   服务器绑定地址:那只说明谁"够得着"服务器,不说明这个请求是谁发的。
+export function isExportRequestAllowed({ origin, referer, remoteAddress, allowedOrigins }) {
   if (origin) return allowedOrigins.has(origin);
   const refererOrigin = safeOrigin(referer);
   if (refererOrigin) return allowedOrigins.has(refererOrigin);
-  return isLoopbackHost(host);
+  return isLoopbackAddress(remoteAddress);
+}
+
+// 对端 socket 地址是否为回环:127.0.0.0/8、::1,以及双栈 socket 报的 ::ffff:127.x.x.x。
+export function isLoopbackAddress(address) {
+  if (typeof address !== 'string') return false;
+  const value = address.trim().toLowerCase();
+  if (value === '::1') return true;
+  const mapped = value.startsWith('::ffff:') ? value.slice('::ffff:'.length) : value;
+  const match = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.exec(mapped);
+  if (!match) return false;
+  const octets = match.slice(1).map(Number);
+  return octets.every(octet => octet <= 255) && octets[0] === 127;
 }
 
 function safeOrigin(value) {

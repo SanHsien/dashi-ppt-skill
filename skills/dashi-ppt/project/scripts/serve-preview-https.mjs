@@ -39,7 +39,8 @@ const SERVE_ROOT = SERVE_ROOT_ARG
   ? path.resolve(CALLER_CWD, SERVE_ROOT_ARG)
   : path.resolve(ROOT, 'output/theme-preview/ppt');
 const PORT = Number(process.env.PORT || process.argv[3] || 4178);
-const HOST = process.env.HOST || '0.0.0.0';
+// 默认只绑回环;要给局域网设备看预览,显式设 DASHI_PPT_PREVIEW_HOST=0.0.0.0(或 HOST)。
+const HOST = process.env.DASHI_PPT_PREVIEW_HOST || process.env.HOST || '127.0.0.1';
 const LOCAL_HOSTNAME = getLocalHostname();
 const LAN_IPS = getLanIps();
 const CERT_DIR = path.join(ROOT, 'output/https-preview');
@@ -291,7 +292,7 @@ server.listen(PORT, HOST, () => {
   console.log(`HTTP/HTTPS preview serving ${displayPath(SERVE_ROOT)}`);
   console.log(`Open: ${urls.join(' or ')}`);
   if (!isLoopbackHost(HOST)) {
-    console.warn(`[preview] 警告:绑定在 ${HOST}(非回环),预览/导出对局域网可达。导出端点要求请求带允许的 Origin。`);
+    console.warn(`[preview] 警告:绑定在 ${HOST}(非回环),预览/导出对局域网可达。导出端点要求带允许的 Origin,或来自本机回环连接。`);
   }
   if (IDLE_LIMIT_MS > 0) {
     console.log(`[preview] idle auto-exit enabled: ${(IDLE_LIMIT_MS / 60000).toFixed(1)}m`);

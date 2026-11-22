@@ -5,6 +5,25 @@
 
 ---
 
+## 2026-11-22 — D-20 預覽／匯出伺服器預設只綁回環；無 Origin 的匯出請求改看 socket 對端地址
+
+**缺陷（艦隊稽核）**：`serve-preview-https.mjs`、`start-preview-server.mjs` 預設綁 `0.0.0.0`（埠 4178），沒有驗證，同網段任何主機都連得到。匯出端點（headless Chromium、寫檔）靠 `preview-export-auth.mjs` 的 `isExportRequestAllowed` 擋：有 `Origin`／`Referer` 時對允許清單，兩者皆無時只問「伺服器綁在不在回環」。這個判斷不看請求是誰發的，只看服務對誰開放；一旦綁回環（本決定的預設），任何能連上來的無標頭請求都放行，而直接以請求 `Host` 判斷則區網上的非瀏覽器客戶端可以任意偽造 `Host: localhost`。
+
+**決定**（D-11 安全性例外，最小範圍）：
+- 綁定：兩支腳本預設 `127.0.0.1`。要給區網設備看預覽就明確設 `DASHI_PPT_PREVIEW_HOST=0.0.0.0`（`HOST` 沿用）；非回環時啟動仍印警告。
+- 無 `Origin`／`Referer`：改查 `req.socket.remoteAddress`，必須是回環（`127.0.0.0/8`、`::1`、`::ffff:127.x`）。`isExportRequestAllowed` 的參數由 `host` 改為 `remoteAddress`，`export-routes.mjs` 唯一呼叫點同步。`Origin`／`Referer` 的規則不變。
+- 新增 `isLoopbackAddress`（`preview-export-auth.mjs`）；`isLoopbackHost` 保留給啟動警告用。
+
+**驗證**：新增 `tests/security/export-auth.test.mjs` 8 項（對舊碼為載入失敗，新碼 8 pass）：LAN 對端即使偽造 Host 也被拒、回環對端放行、綁定位址不再授權、Origin／Referer 規則不變、真實 loopback socket 以偽造 Host 連線仍以 socket 判斷、兩支腳本預設為 `127.0.0.1`。另實跑 `serve-preview-https.mjs`：`netstat` 只見 `127.0.0.1:<port>` LISTENING；偽造 `Origin: https://evil.example` 回 403；本機無標頭請求通過鑑權；`HOST=0.0.0.0` 時印出警告。
+
+**範圍與限制**：
+- 帶有效 `Origin` 的請求仍由允許清單決定；區網非瀏覽器客戶端可偽造一個允許清單內的 `Origin`。只在使用者明確開放 LAN 後才有此暴露面，本輪不處理（同源檢查本來就是瀏覽器跨站防護，不是驗證）。
+- 產品 `SKILL.md` 本來就只交付 `http://127.0.0.1:<port>/`，預設改回環不影響宿主 Agent 流程；手機／平板靠 LAN 預覽的用法改為明確開啟。上游 `README.zh-CN.md` 仍寫「預覽預設區網可訪問」，該檔以上游為準不改；繁中、英文入口已同步。
+
+**觸發條件**：上游改動這兩支腳本的預設綁定或 `preview-export-auth.mjs`（同步時以較嚴者為準，並保留 `tests/security/export-auth.test.mjs`）；或預覽伺服器加上真正的驗證（token）時重評 Origin 偽造的暴露面。
+
+---
+
 ## 2026-11-22 — D-19 上游 issue #46（技能目錄超出 DSH 安裝上限）：審查，本線不改產品樹
 
 **範圍**：0 個新 commit（水位 `d2b7538`）、0 個新 PR（水位 #45，checker 無 monitored drift）、1 個新 issue（#46，OPEN，2026-11-19，無標籤、無留言）。

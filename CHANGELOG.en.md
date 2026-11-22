@@ -11,6 +11,12 @@ Per-commit adopt/skip reasoning lives in [`docs/DECISIONS.md`](docs/DECISIONS.md
 
 ---
 
+## 2026-11-22 (preview server security)
+
+### Security
+
+- The preview/export servers bind to `127.0.0.1` by default (LAN requires an explicit `DASHI_PPT_PREVIEW_HOST=0.0.0.0`); the export endpoints now require the socket peer to be loopback when a request carries no `Origin`/`Referer`, instead of trusting the bind address or `Host` header. See D-20.
+
 ## 2026-11-09 (upstream review)
 
 ### Maintenance

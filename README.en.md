@@ -179,7 +179,7 @@ npm --prefix <project-dir> run export:pdf  -- <deck-output-dir>/ppt
 > Custom styling is intentionally limited to a defined range: stable output matters more than free-form color picking.
 
 **Does it need the network? Is my content safe?**
-> Zero content upload: your documents and deck content never leave your machine — generation, editing, and export all run locally, and the output opens offline. Only two things touch the network: npm dependency installation on first generation, and a silent version check after tasks complete (it only fetches the latest version number, nothing is uploaded). The local preview server is reachable within your LAN for viewing only; export endpoints are local-only.
+> Zero content upload: your documents and deck content never leave your machine — generation, editing, and export all run locally, and the output opens offline. Only two things touch the network: npm dependency installation on first generation, and a silent version check after tasks complete (it only fetches the latest version number, nothing is uploaded). The local preview server binds to loopback (127.0.0.1) by default; to view a preview from another device on your LAN, set `DASHI_PPT_PREVIEW_HOST=0.0.0.0` explicitly. Export endpoints accept only same-origin browser requests or connections from the local machine.
 
 **PPTX export fails?**
 > Exporting PPTX / PDF requires a local Chrome / Chromium / Edge (point to it with the `CHROME_PATH` environment variable if needed).

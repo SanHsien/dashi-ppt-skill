@@ -455,7 +455,7 @@ export function isAllowedExportRequest(req) {
     `http://${host}:${PORT}`,
     `https://${host}:${PORT}`,
   ]));
-  return isExportRequestAllowed({ origin: req.headers.origin, referer: req.headers.referer, host: HOST, allowedOrigins: allowed });
+  return isExportRequestAllowed({ origin: req.headers.origin, referer: req.headers.referer, remoteAddress: req.socket?.remoteAddress, allowedOrigins: allowed });
 }
 
 export function buildInternalPreviewUrl(req, sourcePath, config = {}) {

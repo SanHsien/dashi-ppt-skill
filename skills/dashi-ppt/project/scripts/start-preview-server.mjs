@@ -34,7 +34,8 @@ const serveRoot = serveRootArg
   ? path.resolve(CALLER_CWD, serveRootArg)
   : path.resolve(ROOT, 'output/theme-preview/ppt');
 const requestedPort = Number(process.env.DASHI_PPT_PREVIEW_PORT || process.argv[3] || 4178);
-const host = process.env.DASHI_PPT_PREVIEW_HOST || process.env.HOST || '0.0.0.0';
+// 默认只绑回环;要给局域网设备看预览,显式设 DASHI_PPT_PREVIEW_HOST=0.0.0.0(或 HOST)。
+const host = process.env.DASHI_PPT_PREVIEW_HOST || process.env.HOST || '127.0.0.1';
 const localName = process.env.DASHI_PPT_PREVIEW_NAME || os.hostname().split('.')[0] || 'localhost';
 const portScanLimit = Math.max(40, Number(process.env.DASHI_PPT_PREVIEW_PORT_SCAN || 240));
 const runtimeRoot = process.env.LOCALAPPDATA || process.env.XDG_RUNTIME_DIR || path.join(os.homedir(), '.cache');
